@@ -105,7 +105,24 @@ var (
 type ValidationError struct{ Err error } // same as device_manager
 ```
 
-`model.Definition`s (run `ormc` afterwards):
+`model.Definition`s (run `ormc` afterwards). **Exact form** — `ormc` only discovers package-level
+**variables** whose name ends in `Model` and whose value is a `model.Definition{…}` composite literal;
+it never reads struct types:
+
+```go
+var NetworkSettingModel = model.Definition{
+	Name: "network_setting",
+	Fields: model.Fields{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}, OmitEmpty: true},
+		// …
+	},
+}
+```
+
+`ormc` generates the struct (`NetworkSetting` — the variable name minus `Model`), its list type and
+helpers into `model_orm.go`. Never declare `type NetworkSetting…` or `type …Model struct` by hand
+(copy the shape of `device_manager/model.go`'s `var DeviceModel = model.Definition{…}`).
+
 
 - `NetworkSettingModel` — table `network_setting`:
   `id` (Text, PK, OmitEmpty), `tenant_id` (`model.Text()`, NotNull),
