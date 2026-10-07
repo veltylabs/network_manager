@@ -43,6 +43,8 @@ operator: apply_network(fingerprint) ┴─► Gateway.Apply(desired, fingerprin
   `webtyp.com/network`'s ARCHITECTURE ("Plan, then apply").
 - **Settings live in the database**, so a site changes its DNS filter or DHCP server name without a
   new build.
+- **Closed-option kinds** (the `unregistered` radio) live in the `kinds/` subpackage: ormc only
+  imports a kind constructor from a package of its own.
 - **No settings ⇒ no plan.** Until the tenant saves a `NetworkSetting`, `plan_network` and
   `apply_network` answer 400 with `network settings not configured`: the module never guesses router
   object names.
@@ -53,7 +55,7 @@ operator: apply_network(fingerprint) ┴─► Gateway.Apply(desired, fingerprin
 
 | Op | Action | Resource | Description |
 |---|---|---|---|
-| `get_network_setting` | `r` | `network_setting` | The tenant's settings (404 if none) |
+| `list_network_settings` | `r` | `network_setting` | The tenant's settings as a list of 0 or 1 rows (a view lists; empty = not configured) |
 | `save_network_setting` | `c`/`u` | `network_setting` | Create or replace the tenant's settings |
 | `plan_network` | `r` | `network` | Current plan: changes, conflicts, warnings (+ fingerprint on every row) |
 | `apply_network` | `u` | `network` | Apply the plan with the given fingerprint |

@@ -3,11 +3,15 @@ PLAN: "feat: network_manager — review and apply the device inventory to the ne
 TAG: v0.1.0
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
-SESSION: 5897233414007165870
 ---
 
-> This plan is dispatched via the CodeJob workflow. See skill: agents-workflow.
+> Executed LOCALLY on 2026-10-07: the Jules session ran for hours without pushing anything and was stopped.
+> Deviations:
+> - `get_network_setting` became `list_network_settings` (0 or 1 rows): a view.Presenter lists, and
+>   two read ops for the same row would be two ways to do one thing.
+> - The `unregistered` radio lives in `kinds/` (ormc rejects local kind constructors).
+> - `webtyp.com/network` v0.1.1: fingerprints are now guaranteed lower-case hex (contract +
+>   conformance); `mem` produced `|`/`:` characters that a text field rightly rejects.
 >
 > Phase F5a of the network administration master plan (private repo `veltylabs/mjosefa-cms`; you do
 > not need it). **Depends on `webtyp.com/network` v0.1.0** (phase F2) **and `webtyp.com/view` with
