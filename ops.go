@@ -51,7 +51,7 @@ func statusFor(err error) int {
 	if network.IsInvalid(err) {
 		return 400
 	}
-	if err.Error() == network.ErrPlanStale.Error() || err.Error() == network.ErrConflicts.Error() {
+	if network.IsPlanStale(err) || network.IsConflicts(err) {
 		return 409
 	}
 	return 500
