@@ -1,7 +1,6 @@
 package networkmanager
 
 import (
-	"webtyp.com/fmt"
 	"webtyp.com/input"
 	"webtyp.com/model"
 
@@ -40,9 +39,13 @@ const (
 
 const TopicNetworkApplied = "network_manager.network.applied"
 
-var (
-	ErrNotConfigured = fmt.Err("network settings not configured")
-	ErrNotFound      = fmt.Err("network setting not found")
+type domainError string
+
+func (e domainError) Error() string { return string(e) }
+
+const (
+	ErrNotConfigured domainError = "network settings not configured"
+	ErrNotFound      domainError = "network setting not found"
 )
 
 // ValidationError marks a client error (400) from a service method.

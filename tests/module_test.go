@@ -209,7 +209,7 @@ func TestDiscoverAndImport(t *testing.T) {
 func TestTenantIsolation(t *testing.T) {
 	f := setup(t)
 	f.configured(t)
-	if _, err := f.m.GetSetting("tenant-B"); err != networkmanager.ErrNotFound {
+	if _, err := f.m.GetSetting("tenant-B"); err == nil || err.Error() != networkmanager.ErrNotFound.Error() {
 		t.Errorf("tenant B read tenant A's setting: err = %v", err)
 	}
 	f.inv.hosts = []network.Host{hostPC}

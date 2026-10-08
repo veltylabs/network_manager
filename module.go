@@ -53,7 +53,7 @@ func New(db *orm.DB, deps Deps) (*Module, error) {
 func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
 	var s NetworkSetting
 	if _, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s); err != nil {
-		if err == orm.ErrNotFound {
+		if orm.IsNotFound(err) {
 			return NetworkSetting{}, ErrNotFound
 		}
 		return NetworkSetting{}, err
@@ -68,7 +68,12 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	}
 	s.FilterDns = input.CanonicalIP(s.FilterDns)
 	existing, err := m.GetSetting(s.TenantId)
-	creating := err == ErrNotFound
+
+	creating := false
+	if e, ok := err.(domainError); ok && e == ErrNotFound {
+		creating = true
+	}
+
 	if err != nil && !creating {
 		return NetworkSetting{}, err
 	}
@@ -98,7 +103,7 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 func (m *Module) Desired(tenantID string) (network.Desired, error) {
 	s, err := m.GetSetting(tenantID)
 	if err != nil {
-		if err == ErrNotFound {
+		if e, ok := err.(domainError); ok && e == ErrNotFound {
 			return network.Desired{}, ErrNotConfigured
 		}
 		return network.Desired{}, err

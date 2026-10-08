@@ -34,15 +34,24 @@ var _ router.OperationModule = (*Module)(nil)
 
 // statusFor maps a service error to its HTTP status (AGENTS.md convention).
 func statusFor(err error) int {
+	if err == nil {
+		return 200
+	}
 	if _, ok := err.(ValidationError); ok {
 		return 400
 	}
-	switch {
-	case err == ErrNotConfigured, network.IsInvalid(err):
+	if e, ok := err.(domainError); ok {
+		switch e {
+		case ErrNotConfigured:
+			return 400
+		case ErrNotFound:
+			return 404
+		}
+	}
+	if network.IsInvalid(err) {
 		return 400
-	case err == ErrNotFound:
-		return 404
-	case err == network.ErrPlanStale, err == network.ErrConflicts:
+	}
+	if err.Error() == network.ErrPlanStale.Error() || err.Error() == network.ErrConflicts.Error() {
 		return 409
 	}
 	return 500
@@ -51,7 +60,13 @@ func statusFor(err error) int {
 func (m *Module) opListNetworkSettings(ctx router.Context) {
 	list := NetworkSettingList{}
 	s, err := m.GetSetting(m.tenantID)
-	if err != nil && err != ErrNotFound {
+
+	isNotFound := false
+	if e, ok := err.(domainError); ok && e == ErrNotFound {
+		isNotFound = true
+	}
+
+	if err != nil && !isNotFound {
 		ctx.WriteStatus(500)
 		return
 	}
