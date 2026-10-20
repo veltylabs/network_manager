@@ -64,7 +64,7 @@ var NetworkSettingModel = model.Definition{
 		{Name: "dynamic_pool", Type: input.Text(), OmitEmpty: true, Permitted: model.Permitted{Letters: true, Numbers: true, Spaces: true, Extra: []rune{'-', '_', '.'}, Maximum: 64}},
 		{Name: "filter_dns", Type: input.IP(), NotNull: true},
 		{Name: "unregistered", Type: kinds.UnregisteredPolicy(), NotNull: true},
-		{Name: "updated_at", Type: model.Int(), OmitEmpty: true},
+		{Name: "updated_at", Type: model.NanoTime(), OmitEmpty: true},
 	},
 }
 
@@ -76,7 +76,7 @@ var NetworkApplyModel = model.Definition{
 		{Name: "tenant_id", Type: model.Text(), NotNull: true},
 		{Name: "fingerprint", Type: model.Text(), NotNull: true},
 		{Name: "changes", Type: model.Int()},
-		{Name: "applied_at", Type: model.Int()},
+		{Name: "applied_at", Type: model.NanoTime()},
 	},
 }
 
