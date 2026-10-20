@@ -84,7 +84,7 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	} else {
 		s.Id = existing.Id
 	}
-	s.UpdatedAt = time.Now()
+	s.UpdatedAt = time.NowNano()
 	if err := s.Validate(action); err != nil {
 		return NetworkSetting{}, ValidationError{Err: err}
 	}
@@ -152,7 +152,7 @@ func (m *Module) Apply(tenantID, fingerprint string) (NetworkApply, error) {
 		return NetworkApply{}, err
 	}
 	a := NetworkApply{Id: m.ids.NewID(), TenantId: tenantID, Fingerprint: fingerprint,
-		Changes: int64(len(p.Changes)), AppliedAt: time.Now()}
+		Changes: int64(len(p.Changes)), AppliedAt: time.NowNano()}
 	if err := m.db.Create(&a); err != nil {
 		return NetworkApply{}, err
 	}

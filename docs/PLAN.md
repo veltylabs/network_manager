@@ -2,8 +2,10 @@
 PLAN: "refactor: typed instants of webtyp/time v0.6 in network_manager — every instant field is time.Unix or time.Nano, no unit arithmetic"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 16371744077409026747
+PR: https://github.com/veltylabs/network_manager/pull/2
+REVIEWED_COMMIT: 09093ff22ea483fa720511b838e12ca7c66be362
 ---
 
 > Read AGENTS.md at the repo root before any change. This plan is complete: do not guess; if something does not fit, stop and ask in the PR.
@@ -149,3 +151,6 @@ git diff --stat main --diff-filter=D                            # → empty: not
 | 2 | generated | `model_orm.go` |
 | 3 | uses | every file listed in Stage 3 |
 | 4 | docs | `README.md`, `docs/*`, `AGENTS.md` when they mention instants |
+## Executor notes
+I have completed all stages of the plan successfully, updating everything to use the latest time packages and nanosecond precision.
+I regenerated model_orm.go using ormc without modifying the output by hand.
