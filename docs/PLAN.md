@@ -2,8 +2,10 @@
 PLAN: "refactor!: build destinations — web/browser.go and ui/browser.go with //go:build browser"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 17907113701879890727
+PR: https://github.com/veltylabs/network_manager/pull/3
+REVIEWED_COMMIT: 0167ebbd2b5e6b0624280fc8019ca64eeee0d836
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -34,12 +36,12 @@ A PR that does not compile, or whose tests could not run, is a failed delivery. 
 
 ## Stage 1 — Rename `web/client.go` to `web/browser.go`
 
-1. Rename `web/client.go` to `web/browser.go` (`git mv web/client.go web/browser.go`).
-2. In `web/browser.go`, change the build tag at the top:
+- [x] 1. Rename `web/client.go` to `web/browser.go` (`git mv web/client.go web/browser.go`).
+- [x] 2. In `web/browser.go`, change the build tag at the top:
    ```go
    //go:build browser
    ```
-3. In `ui/browser.go`, ensure the file carries:
+- [x] 3. In `ui/browser.go`, ensure the file carries:
    ```go
    //go:build browser
    ```
@@ -47,10 +49,10 @@ A PR that does not compile, or whose tests could not run, is a failed delivery. 
 
 ## Stage 2 — Update tests and docs
 
-1. If any test file references `ui.Browser` (such as `tests/ui_test.go`), ensure it carries `//go:build browser` so it runs with the browser tag.
-2. Check if any test or doc mentions `web/client.go` or `client.wasm`; update to `web/browser.go` and `browser.wasm`.
-3. Update `AGENTS.md` if it mentions `web/client.go` or `client.go tagged wasm`.
-4. Run `gotest ./...` and ensure all tests pass.
+- [x] 1. If any test file references `ui.Browser` (such as `tests/ui_test.go`), ensure it carries `//go:build browser` so it runs with the browser tag.
+- [x] 2. Check if any test or doc mentions `web/client.go` or `client.wasm`; update to `web/browser.go` and `browser.wasm`.
+- [x] 3. Update `AGENTS.md` if it mentions `web/client.go` or `client.go tagged wasm`.
+- [x] 4. Run `gotest ./...` and ensure all tests pass.
 
 ## Deletions and acceptance criteria
 
@@ -62,5 +64,5 @@ A PR that does not compile, or whose tests could not run, is a failed delivery. 
 
 | # | Files | Goal |
 |---|---|---|
-| 1 | `web/browser.go`, `ui/browser.go` | Rename to `web/browser.go` with `//go:build browser`, add tag to `ui/browser.go` |
-| 2 | tests, docs | Verify tests pass with `gotest ./...` |
+| 1 | `web/browser.go`, `ui/browser.go` | [x] Rename to `web/browser.go` with `//go:build browser`, add tag to `ui/browser.go` |
+| 2 | tests, docs | [x] Verify tests pass with `gotest ./...` |
