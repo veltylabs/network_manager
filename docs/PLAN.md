@@ -2,8 +2,10 @@
 PLAN: "refactor!: build destinations — web/browser.go and ui/browser.go with //go:build browser"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 17907113701879890727
+PR: https://github.com/veltylabs/network_manager/pull/3
+REVIEWED_COMMIT: 0167ebbd2b5e6b0624280fc8019ca64eeee0d836
 ---
 
 > Read AGENTS.md at the repo root before any change.
