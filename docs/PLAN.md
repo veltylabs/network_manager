@@ -3,8 +3,10 @@ PLAN: "feat: migrate ui to view.Screen and drop layout dependency"
 TAG: v0.1.83
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 3241760869110928586
+PR: https://github.com/veltylabs/network_manager/pull/4
+REVIEWED_COMMIT: d096215729530046dfbcd176ae0cb1db1753ba4d
 ---
 
 > Read AGENTS.md at the repo root before any change.

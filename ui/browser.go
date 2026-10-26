@@ -4,38 +4,48 @@ package ui
 
 import (
 	networkmanager "github.com/veltylabs/network_manager"
-	"webtyp.com/layout/crudview"
-	"webtyp.com/layout/platformd"
-	"webtyp.com/model"
+	"webtyp.com/lang"
 	"webtyp.com/router"
-	"webtyp.com/svg"
 	"webtyp.com/view"
 )
 
-// Browser builds the settings screen ("Red").
-func Browser(caller router.Caller, ids model.IDGenerator, tenantID string) (platformd.UIModule, error) {
-	return screen(ID, Label, networkmanager.NewSettingView(caller), ids)
-}
+const (
+	descSettings    lang.Text = "Network configuration: DHCP server, DNS filtering, and domain controls."
+	descPlan        lang.Text = "Pending network configuration changes awaiting router application."
+	descConnections lang.Text = "Active client connections, IP and MAC address leases."
+	descHistory     lang.Text = "Audit trail of previously applied network changes."
+)
 
-// PlanBrowser builds the pending-changes screen, with the Apply action.
-func PlanBrowser(caller router.Caller, ids model.IDGenerator, tenantID string) (platformd.UIModule, error) {
-	return screen(PlanID, PlanLabel, networkmanager.NewPlanView(caller), ids)
-}
-
-// ConnectionsBrowser builds the who-is-connected screen.
-func ConnectionsBrowser(caller router.Caller, ids model.IDGenerator, tenantID string) (platformd.UIModule, error) {
-	return screen(ConnectionsID, ConnectionsLabel, networkmanager.NewConnectionView(caller), ids)
-}
-
-// HistoryBrowser builds the apply-history screen.
-func HistoryBrowser(caller router.Caller, ids model.IDGenerator, tenantID string) (platformd.UIModule, error) {
-	return screen(HistoryID, HistoryLabel, networkmanager.NewApplyHistoryView(caller), ids)
-}
-
-func screen(id, label string, p view.Presenter, ids model.IDGenerator) (platformd.UIModule, error) {
-	v, err := crudview.New(crudview.Config{ParentID: id, Presenter: p, IDs: ids})
-	if err != nil {
-		return nil, err
+// Screens declara las pantallas que este módulo ofrece al menú de la app.
+func Screens(caller router.Caller) []view.Screen {
+	return []view.Screen{
+		{
+			ID:         ID,
+			Label:      Label,
+			Icon:       ID,
+			Permission: networkmanager.ResourceNetworkSetting,
+			Presenter:  networkmanager.NewSettingView(caller, view.WithDescription(descSettings)),
+		},
+		{
+			ID:         PlanID,
+			Label:      PlanLabel,
+			Icon:       ID,
+			Permission: networkmanager.ResourceNetwork,
+			Presenter:  networkmanager.NewPlanView(caller, view.WithDescription(descPlan)),
+		},
+		{
+			ID:         ConnectionsID,
+			Label:      ConnectionsLabel,
+			Icon:       ID,
+			Permission: networkmanager.ResourceNetwork,
+			Presenter:  networkmanager.NewConnectionView(caller, view.WithDescription(descConnections)),
+		},
+		{
+			ID:         HistoryID,
+			Label:      HistoryLabel,
+			Icon:       ID,
+			Permission: networkmanager.ResourceNetwork,
+			Presenter:  networkmanager.NewApplyHistoryView(caller, view.WithDescription(descHistory)),
+		},
 	}
-	return platformd.NewUIModule(id, label, svg.Icon(ID), v), nil
 }
