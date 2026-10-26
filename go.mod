@@ -9,11 +9,11 @@ require (
 	webtyp.com/fmt v1.0.0
 	webtyp.com/form v0.4.52
 	webtyp.com/input v0.0.20
-	webtyp.com/layout v0.3.75
+	webtyp.com/layout v0.3.76
 	webtyp.com/model v0.2.6
 	webtyp.com/network v0.1.2
 	webtyp.com/orm v0.12.8
-	webtyp.com/router v0.4.6
+	webtyp.com/router v0.4.8
 	webtyp.com/storage v0.1.8
 	webtyp.com/svg v0.3.30
 	webtyp.com/time v0.6.2
