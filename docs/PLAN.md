@@ -3,6 +3,8 @@ PLAN: "feat: migrate ui to view.Screen and drop layout dependency"
 TAG: v0.1.83
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 3241760869110928586
 ---
 
 > Read AGENTS.md at the repo root before any change.
