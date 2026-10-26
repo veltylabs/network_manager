@@ -19,8 +19,7 @@ nm, err := networkmanager.New(db, networkmanager.Deps{
     TenantID:  t,
 })
 nm.MountOperations(reg) // router.OperationRegistry
-// Screens (ui/): Browser (Red), PlanBrowser (Cambios pendientes, with Apply),
-// ConnectionsBrowser (Conectados), HistoryBrowser (Historial de red).
+// Screens (ui/): Screens(caller router.Caller) []view.Screen
 ```
 
 Schema: `migrate.Migrate(conn, compiler)` from the app's migration binary.

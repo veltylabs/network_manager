@@ -56,17 +56,17 @@ func (a *NetworkApply) Item() view.Item {
 	return view.Item{ID: a.Id, Label: a.Fingerprint, Description: a.TenantId}
 }
 
-// NewSettingView lists (0 or 1 rows) and saves the tenant's settings.
-func NewSettingView(caller router.Caller) view.Presenter {
+// NewSettingView lists and saves the tenant's settings.
+func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListNetworkSettings, Save: OpSaveNetworkSetting},
 		func() model.ModelSlice { return &NetworkSettingList{} })
-	return view.New(b, &NetworkSetting{}, view.WithTitle(titleSettings))
+	allOpts := append([]view.Option{view.WithTitle(titleSettings)}, opts...)
+	return view.New(b, &NetworkSetting{}, allOpts...)
 }
 
-// NewPlanView lists the pending plan and offers the Apply action: it sends the
-// fingerprint every row carries (the button is disabled when there are no rows).
-func NewPlanView(caller router.Caller) view.Presenter {
+// NewPlanView lists the pending plan and offers the Apply action.
+func NewPlanView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpPlanNetwork, Actions: []view.Action{{
 			Op:      OpApplyNetwork,
@@ -78,21 +78,24 @@ func NewPlanView(caller router.Caller) view.Presenter {
 			},
 		}}},
 		func() model.ModelSlice { return &PlanItemList{} })
-	return view.New(b, &PlanItem{}, view.WithTitle(titlePlan))
+	allOpts := append([]view.Option{view.WithTitle(titlePlan)}, opts...)
+	return view.New(b, &PlanItem{}, allOpts...)
 }
 
 // NewConnectionView lists who is connected now.
-func NewConnectionView(caller router.Caller) view.Presenter {
+func NewConnectionView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListConnections},
 		func() model.ModelSlice { return &ConnectionRowList{} })
-	return view.New(b, &ConnectionRow{}, view.WithTitle(titleConnections))
+	allOpts := append([]view.Option{view.WithTitle(titleConnections)}, opts...)
+	return view.New(b, &ConnectionRow{}, allOpts...)
 }
 
 // NewApplyHistoryView lists past applies, newest first.
-func NewApplyHistoryView(caller router.Caller) view.Presenter {
+func NewApplyHistoryView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListNetworkApplies},
 		func() model.ModelSlice { return &NetworkApplyList{} })
-	return view.New(b, &NetworkApply{}, view.WithTitle(titleHistory))
+	allOpts := append([]view.Option{view.WithTitle(titleHistory)}, opts...)
+	return view.New(b, &NetworkApply{}, allOpts...)
 }

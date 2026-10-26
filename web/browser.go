@@ -8,7 +8,6 @@ import (
 	"github.com/veltylabs/network_manager/ui"
 	. "webtyp.com/dom"
 	"webtyp.com/events/mock"
-	"webtyp.com/layout/platformd"
 	"webtyp.com/network"
 	netmem "webtyp.com/network/mem"
 	"webtyp.com/orm"
@@ -62,26 +61,13 @@ func main() {
 	}
 
 	caller := loopback.WithTenant(demoTenantID, nm)
-	var modules []platformd.UIModule
-	for _, build := range []func() (platformd.UIModule, error){
-		func() (platformd.UIModule, error) { return ui.Browser(caller, ids, demoTenantID) },
-		func() (platformd.UIModule, error) { return ui.PlanBrowser(caller, ids, demoTenantID) },
-		func() (platformd.UIModule, error) { return ui.ConnectionsBrowser(caller, ids, demoTenantID) },
-		func() (platformd.UIModule, error) { return ui.HistoryBrowser(caller, ids, demoTenantID) },
-	} {
-		m, err := build()
-		if err != nil {
-			panic(err)
-		}
-		modules = append(modules, m)
+
+	// Create a simple wrapper for testing
+	wrapper := NewElement("div")
+	for _, screen := range ui.Screens(caller) {
+		wrapper = wrapper.Child(screen.Presenter.(Component))
 	}
 
-	p := &platformd.Platform{
-		AppName:   ui.Label + " — demo",
-		User:      demoUser{},
-		Modules:   modules,
-		DefaultID: ui.PlanID,
-	}
-	Append("body", p)
+	Append("body", wrapper)
 	select {}
 }
