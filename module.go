@@ -35,18 +35,22 @@ type Module struct {
 func New(db *orm.DB, deps Deps) (*Module, error) {
 	switch {
 	case deps.IDs == nil:
-		return nil, fmt.Err("network_manager: Deps.IDs is required")
+		return nil, depErr("IDs")
 	case deps.Hosts == nil:
-		return nil, fmt.Err("network_manager: Deps.Hosts is required")
+		return nil, depErr("Hosts")
 	case deps.Importer == nil:
-		return nil, fmt.Err("network_manager: Deps.Importer is required")
+		return nil, depErr("Importer")
 	case deps.Gateway == nil:
-		return nil, fmt.Err("network_manager: Deps.Gateway is required")
+		return nil, depErr("Gateway")
 	case deps.TenantID == "":
-		return nil, fmt.Err("network_manager: Deps.TenantID is required")
+		return nil, depErr("TenantID")
 	}
 	return &Module{db: db, ids: deps.IDs, hosts: deps.Hosts, importer: deps.Importer,
 		gateway: deps.Gateway, pub: deps.Publisher, tenantID: deps.TenantID}, nil
+}
+
+func depErr(name string) error {
+	return fmt.Err("network_manager: Deps."+name, "is required")
 }
 
 // GetSetting returns the tenant's settings; ErrNotFound when none were saved.
