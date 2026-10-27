@@ -9,75 +9,49 @@ import (
 )
 
 type NetworkSetting struct {
-	Id           string
-	TenantId     string
-	DhcpServer   string
-	DynamicPool  string
-	FilterDns    string
+	Id string
+	TenantId string
+	DhcpServer string
+	DynamicPool string
+	FilterDns string
 	Unregistered string
-	UpdatedAt    time.Nano
+	UpdatedAt time.Nano
 }
 
 func (m *NetworkSetting) ModelName() string { return "network_setting" }
 
 func (m *NetworkSetting) Schema() []model.Field { return NetworkSettingModel.Fields }
 
-func (m *NetworkSetting) Pointers() []any {
-	return []any{&m.Id, &m.TenantId, &m.DhcpServer, &m.DynamicPool, &m.FilterDns, &m.Unregistered, (*int64)(&m.UpdatedAt)}
-}
+func (m *NetworkSetting) Pointers() []any { return []any{&m.Id, &m.TenantId, &m.DhcpServer, &m.DynamicPool, &m.FilterDns, &m.Unregistered, (*int64)(&m.UpdatedAt)} }
 
 func (m *NetworkSetting) IsNil() bool { return m == nil }
 
 func (m *NetworkSetting) EncodeFields(w model.FieldWriter) {
-	if m.Id != "" {
-		w.String("id", m.Id)
-	}
+	if m.Id != "" { w.String("id", m.Id) }
 	w.String("tenant_id", m.TenantId)
 	w.String("dhcp_server", m.DhcpServer)
-	if m.DynamicPool != "" {
-		w.String("dynamic_pool", m.DynamicPool)
-	}
+	if m.DynamicPool != "" { w.String("dynamic_pool", m.DynamicPool) }
 	w.String("filter_dns", m.FilterDns)
 	w.String("unregistered", m.Unregistered)
-	if m.UpdatedAt != 0 {
-		w.Int("updated_at", int64(m.UpdatedAt))
-	}
+	if m.UpdatedAt != 0 { w.Int("updated_at", int64(m.UpdatedAt)) }
 }
 
 func (m *NetworkSetting) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("id"); ok {
-		m.Id = v
-	}
-	if v, ok := r.String("tenant_id"); ok {
-		m.TenantId = v
-	}
-	if v, ok := r.String("dhcp_server"); ok {
-		m.DhcpServer = v
-	}
-	if v, ok := r.String("dynamic_pool"); ok {
-		m.DynamicPool = v
-	}
-	if v, ok := r.String("filter_dns"); ok {
-		m.FilterDns = v
-	}
-	if v, ok := r.String("unregistered"); ok {
-		m.Unregistered = v
-	}
-	if v, ok := r.Int("updated_at"); ok {
-		m.UpdatedAt = time.Nano(v)
-	}
+	if v, ok := r.String("id"); ok { m.Id = v }
+	if v, ok := r.String("tenant_id"); ok { m.TenantId = v }
+	if v, ok := r.String("dhcp_server"); ok { m.DhcpServer = v }
+	if v, ok := r.String("dynamic_pool"); ok { m.DynamicPool = v }
+	if v, ok := r.String("filter_dns"); ok { m.FilterDns = v }
+	if v, ok := r.String("unregistered"); ok { m.Unregistered = v }
+	if v, ok := r.Int("updated_at"); ok { m.UpdatedAt = time.Nano(v) }
 }
 
 type NetworkSettingList []*NetworkSetting
 
-func (s *NetworkSettingList) Len() int               { return len(*s) }
+func (s *NetworkSettingList) Len() int             { return len(*s) }
 func (s *NetworkSettingList) At(i int) model.Fielder { return (*s)[i] }
-func (s *NetworkSettingList) Append() model.Fielder {
-	v := &NetworkSetting{}
-	*s = append(*s, v)
-	return v
-}
-func (s *NetworkSettingList) IsNil() bool                      { return s == nil }
+func (s *NetworkSettingList) Append() model.Fielder  { v := &NetworkSetting{}; *s = append(*s, v); return v }
+func (s *NetworkSettingList) IsNil() bool          { return s == nil }
 func (s *NetworkSettingList) EncodeFields(_ model.FieldWriter) {}
 func (s *NetworkSettingList) DecodeFields(_ model.FieldReader) {}
 
@@ -86,21 +60,21 @@ func (m *NetworkSetting) Validate(action byte) error {
 }
 
 var NetworkSetting_ = struct {
-	Id           string
-	TenantId     string
-	DhcpServer   string
-	DynamicPool  string
-	FilterDns    string
+	Id string
+	TenantId string
+	DhcpServer string
+	DynamicPool string
+	FilterDns string
 	Unregistered string
-	UpdatedAt    string
+	UpdatedAt string
 }{
-	Id:           "id",
-	TenantId:     "tenant_id",
-	DhcpServer:   "dhcp_server",
-	DynamicPool:  "dynamic_pool",
-	FilterDns:    "filter_dns",
+	Id: "id",
+	TenantId: "tenant_id",
+	DhcpServer: "dhcp_server",
+	DynamicPool: "dynamic_pool",
+	FilterDns: "filter_dns",
 	Unregistered: "unregistered",
-	UpdatedAt:    "updated_at",
+	UpdatedAt: "updated_at",
 }
 
 func ReadOneNetworkSetting(qb *orm.QB, model *NetworkSetting) (*NetworkSetting, error) {
@@ -121,27 +95,23 @@ func ReadAllNetworkSetting(qb *orm.QB) (NetworkSettingList, error) {
 }
 
 type NetworkApply struct {
-	Id          string
-	TenantId    string
+	Id string
+	TenantId string
 	Fingerprint string
-	Changes     int64
-	AppliedAt   time.Nano
+	Changes int64
+	AppliedAt time.Nano
 }
 
 func (m *NetworkApply) ModelName() string { return "network_apply" }
 
 func (m *NetworkApply) Schema() []model.Field { return NetworkApplyModel.Fields }
 
-func (m *NetworkApply) Pointers() []any {
-	return []any{&m.Id, &m.TenantId, &m.Fingerprint, &m.Changes, (*int64)(&m.AppliedAt)}
-}
+func (m *NetworkApply) Pointers() []any { return []any{&m.Id, &m.TenantId, &m.Fingerprint, &m.Changes, (*int64)(&m.AppliedAt)} }
 
 func (m *NetworkApply) IsNil() bool { return m == nil }
 
 func (m *NetworkApply) EncodeFields(w model.FieldWriter) {
-	if m.Id != "" {
-		w.String("id", m.Id)
-	}
+	if m.Id != "" { w.String("id", m.Id) }
 	w.String("tenant_id", m.TenantId)
 	w.String("fingerprint", m.Fingerprint)
 	w.Int("changes", m.Changes)
@@ -149,29 +119,19 @@ func (m *NetworkApply) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *NetworkApply) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("id"); ok {
-		m.Id = v
-	}
-	if v, ok := r.String("tenant_id"); ok {
-		m.TenantId = v
-	}
-	if v, ok := r.String("fingerprint"); ok {
-		m.Fingerprint = v
-	}
-	if v, ok := r.Int("changes"); ok {
-		m.Changes = v
-	}
-	if v, ok := r.Int("applied_at"); ok {
-		m.AppliedAt = time.Nano(v)
-	}
+	if v, ok := r.String("id"); ok { m.Id = v }
+	if v, ok := r.String("tenant_id"); ok { m.TenantId = v }
+	if v, ok := r.String("fingerprint"); ok { m.Fingerprint = v }
+	if v, ok := r.Int("changes"); ok { m.Changes = v }
+	if v, ok := r.Int("applied_at"); ok { m.AppliedAt = time.Nano(v) }
 }
 
 type NetworkApplyList []*NetworkApply
 
-func (s *NetworkApplyList) Len() int                         { return len(*s) }
-func (s *NetworkApplyList) At(i int) model.Fielder           { return (*s)[i] }
-func (s *NetworkApplyList) Append() model.Fielder            { v := &NetworkApply{}; *s = append(*s, v); return v }
-func (s *NetworkApplyList) IsNil() bool                      { return s == nil }
+func (s *NetworkApplyList) Len() int             { return len(*s) }
+func (s *NetworkApplyList) At(i int) model.Fielder { return (*s)[i] }
+func (s *NetworkApplyList) Append() model.Fielder  { v := &NetworkApply{}; *s = append(*s, v); return v }
+func (s *NetworkApplyList) IsNil() bool          { return s == nil }
 func (s *NetworkApplyList) EncodeFields(_ model.FieldWriter) {}
 func (s *NetworkApplyList) DecodeFields(_ model.FieldReader) {}
 
@@ -180,17 +140,17 @@ func (m *NetworkApply) Validate(action byte) error {
 }
 
 var NetworkApply_ = struct {
-	Id          string
-	TenantId    string
+	Id string
+	TenantId string
 	Fingerprint string
-	Changes     string
-	AppliedAt   string
+	Changes string
+	AppliedAt string
 }{
-	Id:          "id",
-	TenantId:    "tenant_id",
+	Id: "id",
+	TenantId: "tenant_id",
 	Fingerprint: "fingerprint",
-	Changes:     "changes",
-	AppliedAt:   "applied_at",
+	Changes: "changes",
+	AppliedAt: "applied_at",
 }
 
 func ReadOneNetworkApply(qb *orm.QB, model *NetworkApply) (*NetworkApply, error) {
@@ -211,16 +171,16 @@ func ReadAllNetworkApply(qb *orm.QB) (NetworkApplyList, error) {
 }
 
 type PlanItem struct {
-	Id          string
-	Category    string
-	Kind        string
-	Object      string
-	Name        string
-	Mac         string
-	Before      string
-	After       string
-	Reason      string
-	Online      bool
+	Id string
+	Category string
+	Kind string
+	Object string
+	Name string
+	Mac string
+	Before string
+	After string
+	Reason string
+	Online bool
 	Fingerprint string
 }
 
@@ -228,9 +188,7 @@ func (m *PlanItem) ModelName() string { return "plan_item" }
 
 func (m *PlanItem) Schema() []model.Field { return PlanItemModel.Fields }
 
-func (m *PlanItem) Pointers() []any {
-	return []any{&m.Id, &m.Category, &m.Kind, &m.Object, &m.Name, &m.Mac, &m.Before, &m.After, &m.Reason, &m.Online, &m.Fingerprint}
-}
+func (m *PlanItem) Pointers() []any { return []any{&m.Id, &m.Category, &m.Kind, &m.Object, &m.Name, &m.Mac, &m.Before, &m.After, &m.Reason, &m.Online, &m.Fingerprint} }
 
 func (m *PlanItem) IsNil() bool { return m == nil }
 
@@ -249,47 +207,25 @@ func (m *PlanItem) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *PlanItem) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("id"); ok {
-		m.Id = v
-	}
-	if v, ok := r.String("category"); ok {
-		m.Category = v
-	}
-	if v, ok := r.String("kind"); ok {
-		m.Kind = v
-	}
-	if v, ok := r.String("object"); ok {
-		m.Object = v
-	}
-	if v, ok := r.String("name"); ok {
-		m.Name = v
-	}
-	if v, ok := r.String("mac"); ok {
-		m.Mac = v
-	}
-	if v, ok := r.String("before"); ok {
-		m.Before = v
-	}
-	if v, ok := r.String("after"); ok {
-		m.After = v
-	}
-	if v, ok := r.String("reason"); ok {
-		m.Reason = v
-	}
-	if v, ok := r.Bool("online"); ok {
-		m.Online = v
-	}
-	if v, ok := r.String("fingerprint"); ok {
-		m.Fingerprint = v
-	}
+	if v, ok := r.String("id"); ok { m.Id = v }
+	if v, ok := r.String("category"); ok { m.Category = v }
+	if v, ok := r.String("kind"); ok { m.Kind = v }
+	if v, ok := r.String("object"); ok { m.Object = v }
+	if v, ok := r.String("name"); ok { m.Name = v }
+	if v, ok := r.String("mac"); ok { m.Mac = v }
+	if v, ok := r.String("before"); ok { m.Before = v }
+	if v, ok := r.String("after"); ok { m.After = v }
+	if v, ok := r.String("reason"); ok { m.Reason = v }
+	if v, ok := r.Bool("online"); ok { m.Online = v }
+	if v, ok := r.String("fingerprint"); ok { m.Fingerprint = v }
 }
 
 type PlanItemList []*PlanItem
 
-func (s *PlanItemList) Len() int                         { return len(*s) }
-func (s *PlanItemList) At(i int) model.Fielder           { return (*s)[i] }
-func (s *PlanItemList) Append() model.Fielder            { v := &PlanItem{}; *s = append(*s, v); return v }
-func (s *PlanItemList) IsNil() bool                      { return s == nil }
+func (s *PlanItemList) Len() int             { return len(*s) }
+func (s *PlanItemList) At(i int) model.Fielder { return (*s)[i] }
+func (s *PlanItemList) Append() model.Fielder  { v := &PlanItem{}; *s = append(*s, v); return v }
+func (s *PlanItemList) IsNil() bool          { return s == nil }
 func (s *PlanItemList) EncodeFields(_ model.FieldWriter) {}
 func (s *PlanItemList) DecodeFields(_ model.FieldReader) {}
 
@@ -298,21 +234,19 @@ func (m *PlanItem) Validate(action byte) error {
 }
 
 type ConnectionRow struct {
-	Mac        string
-	Ip         string
-	HostName   string
-	Source     string
+	Mac string
+	Ip string
+	HostName string
+	Source string
 	Registered bool
-	Name       string
+	Name string
 }
 
 func (m *ConnectionRow) ModelName() string { return "connection_row" }
 
 func (m *ConnectionRow) Schema() []model.Field { return ConnectionRowModel.Fields }
 
-func (m *ConnectionRow) Pointers() []any {
-	return []any{&m.Mac, &m.Ip, &m.HostName, &m.Source, &m.Registered, &m.Name}
-}
+func (m *ConnectionRow) Pointers() []any { return []any{&m.Mac, &m.Ip, &m.HostName, &m.Source, &m.Registered, &m.Name} }
 
 func (m *ConnectionRow) IsNil() bool { return m == nil }
 
@@ -326,36 +260,20 @@ func (m *ConnectionRow) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *ConnectionRow) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("mac"); ok {
-		m.Mac = v
-	}
-	if v, ok := r.String("ip"); ok {
-		m.Ip = v
-	}
-	if v, ok := r.String("host_name"); ok {
-		m.HostName = v
-	}
-	if v, ok := r.String("source"); ok {
-		m.Source = v
-	}
-	if v, ok := r.Bool("registered"); ok {
-		m.Registered = v
-	}
-	if v, ok := r.String("name"); ok {
-		m.Name = v
-	}
+	if v, ok := r.String("mac"); ok { m.Mac = v }
+	if v, ok := r.String("ip"); ok { m.Ip = v }
+	if v, ok := r.String("host_name"); ok { m.HostName = v }
+	if v, ok := r.String("source"); ok { m.Source = v }
+	if v, ok := r.Bool("registered"); ok { m.Registered = v }
+	if v, ok := r.String("name"); ok { m.Name = v }
 }
 
 type ConnectionRowList []*ConnectionRow
 
-func (s *ConnectionRowList) Len() int               { return len(*s) }
+func (s *ConnectionRowList) Len() int             { return len(*s) }
 func (s *ConnectionRowList) At(i int) model.Fielder { return (*s)[i] }
-func (s *ConnectionRowList) Append() model.Fielder {
-	v := &ConnectionRow{}
-	*s = append(*s, v)
-	return v
-}
-func (s *ConnectionRowList) IsNil() bool                      { return s == nil }
+func (s *ConnectionRowList) Append() model.Fielder  { v := &ConnectionRow{}; *s = append(*s, v); return v }
+func (s *ConnectionRowList) IsNil() bool          { return s == nil }
 func (s *ConnectionRowList) EncodeFields(_ model.FieldWriter) {}
 func (s *ConnectionRowList) DecodeFields(_ model.FieldReader) {}
 
@@ -364,9 +282,9 @@ func (m *ConnectionRow) Validate(action byte) error {
 }
 
 type DiscoveredRow struct {
-	Mac      string
-	Ip       string
-	Name     string
+	Mac string
+	Ip string
+	Name string
 	Internet bool
 }
 
@@ -386,30 +304,18 @@ func (m *DiscoveredRow) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *DiscoveredRow) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("mac"); ok {
-		m.Mac = v
-	}
-	if v, ok := r.String("ip"); ok {
-		m.Ip = v
-	}
-	if v, ok := r.String("name"); ok {
-		m.Name = v
-	}
-	if v, ok := r.Bool("internet"); ok {
-		m.Internet = v
-	}
+	if v, ok := r.String("mac"); ok { m.Mac = v }
+	if v, ok := r.String("ip"); ok { m.Ip = v }
+	if v, ok := r.String("name"); ok { m.Name = v }
+	if v, ok := r.Bool("internet"); ok { m.Internet = v }
 }
 
 type DiscoveredRowList []*DiscoveredRow
 
-func (s *DiscoveredRowList) Len() int               { return len(*s) }
+func (s *DiscoveredRowList) Len() int             { return len(*s) }
 func (s *DiscoveredRowList) At(i int) model.Fielder { return (*s)[i] }
-func (s *DiscoveredRowList) Append() model.Fielder {
-	v := &DiscoveredRow{}
-	*s = append(*s, v)
-	return v
-}
-func (s *DiscoveredRowList) IsNil() bool                      { return s == nil }
+func (s *DiscoveredRowList) Append() model.Fielder  { v := &DiscoveredRow{}; *s = append(*s, v); return v }
+func (s *DiscoveredRowList) IsNil() bool          { return s == nil }
 func (s *DiscoveredRowList) EncodeFields(_ model.FieldWriter) {}
 func (s *DiscoveredRowList) DecodeFields(_ model.FieldReader) {}
 
@@ -436,20 +342,16 @@ func (m *ImportReport) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *ImportReport) DecodeFields(r model.FieldReader) {
-	if v, ok := r.Int("created"); ok {
-		m.Created = v
-	}
-	if v, ok := r.Int("skipped"); ok {
-		m.Skipped = v
-	}
+	if v, ok := r.Int("created"); ok { m.Created = v }
+	if v, ok := r.Int("skipped"); ok { m.Skipped = v }
 }
 
 type ImportReportList []*ImportReport
 
-func (s *ImportReportList) Len() int                         { return len(*s) }
-func (s *ImportReportList) At(i int) model.Fielder           { return (*s)[i] }
-func (s *ImportReportList) Append() model.Fielder            { v := &ImportReport{}; *s = append(*s, v); return v }
-func (s *ImportReportList) IsNil() bool                      { return s == nil }
+func (s *ImportReportList) Len() int             { return len(*s) }
+func (s *ImportReportList) At(i int) model.Fielder { return (*s)[i] }
+func (s *ImportReportList) Append() model.Fielder  { v := &ImportReport{}; *s = append(*s, v); return v }
+func (s *ImportReportList) IsNil() bool          { return s == nil }
 func (s *ImportReportList) EncodeFields(_ model.FieldWriter) {}
 func (s *ImportReportList) DecodeFields(_ model.FieldReader) {}
 
@@ -474,21 +376,15 @@ func (m *ApplyNetworkArgs) EncodeFields(w model.FieldWriter) {
 }
 
 func (m *ApplyNetworkArgs) DecodeFields(r model.FieldReader) {
-	if v, ok := r.String("fingerprint"); ok {
-		m.Fingerprint = v
-	}
+	if v, ok := r.String("fingerprint"); ok { m.Fingerprint = v }
 }
 
 type ApplyNetworkArgsList []*ApplyNetworkArgs
 
-func (s *ApplyNetworkArgsList) Len() int               { return len(*s) }
+func (s *ApplyNetworkArgsList) Len() int             { return len(*s) }
 func (s *ApplyNetworkArgsList) At(i int) model.Fielder { return (*s)[i] }
-func (s *ApplyNetworkArgsList) Append() model.Fielder {
-	v := &ApplyNetworkArgs{}
-	*s = append(*s, v)
-	return v
-}
-func (s *ApplyNetworkArgsList) IsNil() bool                      { return s == nil }
+func (s *ApplyNetworkArgsList) Append() model.Fielder  { v := &ApplyNetworkArgs{}; *s = append(*s, v); return v }
+func (s *ApplyNetworkArgsList) IsNil() bool          { return s == nil }
 func (s *ApplyNetworkArgsList) EncodeFields(_ model.FieldWriter) {}
 func (s *ApplyNetworkArgsList) DecodeFields(_ model.FieldReader) {}
 

@@ -2,8 +2,10 @@
 PLAN: "feat!: list rows declared on the model fields (Row/Options); Item() removed"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 15682967514847501336
+PR: https://github.com/veltylabs/network_manager/pull/5
+REVIEWED_COMMIT: 73da240a47b2d107add34ab339614288923bfc8d
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -161,3 +163,10 @@ rewrite what is already Spanish), and add a short usage example to exported-symb
 | 4 | `ops.go` | save answers the record |
 | 5 | `tests/*` | `model.RowOf` |
 | 6 | docs, comments, `lang.json` | Spanish |
+
+## Executor notes
+- PlanItem computed label falls back to Name but since ORMC rejects multiple RowTitles, I only marked Object as RowTitle.
+- ConnectionRow computed label falls back to HostName and Mac, I only marked Name as RowTitle.
+- PlanItem and ConnectionRow missing PK on ID/Mac field.
+- opSaveNetworkSetting and opApplyNetwork already encode the saved record.
+- PlanItem details joined as "before · after · reason" (which is order in the struct), while the Item() method concatenated them differently. Asserted struct order in the test.

@@ -32,7 +32,8 @@ func (c *recordingCaller) Dispatch(op string, args model.Encodable) {}
 
 // Case 12: the plan view declares Apply and sends the rows' fingerprint.
 func TestPlanView_ApplyActionSendsFingerprint(t *testing.T) {
-	c := &recordingCaller{}
+	cc := &recordingCaller{}
+	c := view.NewRecords().Caller(cc)
 	p := networkmanager.NewPlanView(c)
 	a, ok := p.(view.Actioner)
 	if !ok || len(a.Actions()) != 1 || a.Actions()[0].Op != networkmanager.OpApplyNetwork {
@@ -50,16 +51,66 @@ func TestPlanView_ApplyActionSendsFingerprint(t *testing.T) {
 	}
 	want := networkmanager.ModelName + "." + networkmanager.OpApplyNetwork
 	idx := -1
-	for i, op := range c.calls {
+	for i, op := range cc.calls {
 		if op == want {
 			idx = i
 		}
 	}
 	if idx < 0 {
-		t.Fatalf("calls = %v, want one to %s", c.calls, want)
+		t.Fatalf("calls = %v, want one to %s", cc.calls, want)
 	}
-	args, ok := c.args[idx].(*networkmanager.ApplyNetworkArgs)
+	args, ok := cc.args[idx].(*networkmanager.ApplyNetworkArgs)
 	if !ok || args.Fingerprint != "fp-123" {
-		t.Errorf("apply args = %#v, want fingerprint fp-123", c.args[idx])
+		t.Errorf("apply args = %#v, want fingerprint fp-123", cc.args[idx])
+	}
+}
+
+func TestRowsDeclaredOnFields(t *testing.T) {
+	setting := networkmanager.NetworkSetting{
+		Id:           "1",
+		TenantId:     "t-1",
+		DhcpServer:   "LAN",
+		FilterDns:    "8.8.8.8",
+		Unregistered: "drop",
+	}
+	settingRow := model.RowOf(&setting)
+	if settingRow.Title != "LAN" || settingRow.Detail != "8.8.8.8 · drop" {
+		t.Errorf("NetworkSetting row mismatch: %+v", settingRow)
+	}
+
+	planItem := networkmanager.PlanItem{
+		Id:       "2",
+		Category: networkmanager.PlanItemChange,
+		Kind:     "update",
+		Object:   "host A",
+		Name:     "host A",
+		Before:   "old",
+		After:    "new",
+		Reason:   "changed",
+	}
+	planRow := model.RowOf(&planItem)
+	if planRow.Title != "host A" || planRow.Detail != "old · new · changed" {
+		t.Errorf("PlanItem row mismatch: %+v", planRow)
+	}
+
+	conn := networkmanager.ConnectionRow{
+		Mac:        "00:11:22",
+		Ip:         "10.0.0.1",
+		Name:       "my-pc",
+		Registered: true,
+	}
+	connRow := model.RowOf(&conn)
+	if connRow.Title != "my-pc" || connRow.Detail != "10.0.0.1 · true" {
+		t.Errorf("ConnectionRow row mismatch: %+v", connRow)
+	}
+
+	apply := networkmanager.NetworkApply{
+		Id:          "3",
+		TenantId:    "t-1",
+		Fingerprint: "fp-123",
+	}
+	applyRow := model.RowOf(&apply)
+	if applyRow.Title != "fp-123" || applyRow.Detail != "t-1" {
+		t.Errorf("NetworkApply row mismatch: %+v", applyRow)
 	}
 }

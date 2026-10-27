@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	descSettings    lang.Text = "Network configuration: DHCP server, DNS filtering, and domain controls."
-	descPlan        lang.Text = "Pending network configuration changes awaiting router application."
-	descConnections lang.Text = "Active client connections, IP and MAC address leases."
-	descHistory     lang.Text = "Audit trail of previously applied network changes."
+	descSettings    lang.Text = "Configuración de red: servidor DHCP, filtrado DNS y controles de dominio."
+	descPlan        lang.Text = "Cambios pendientes de configuración de red en espera de aplicación en el router."
+	descConnections lang.Text = "Conexiones activas de clientes, concesiones de direcciones IP y MAC."
+	descHistory     lang.Text = "Historial de auditoría de cambios de red aplicados anteriormente."
 )
 
 // Screens declara las pantallas que este módulo ofrece al menú de la app.
