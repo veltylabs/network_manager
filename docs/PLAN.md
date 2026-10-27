@@ -161,3 +161,10 @@ rewrite what is already Spanish), and add a short usage example to exported-symb
 | 4 | `ops.go` | save answers the record |
 | 5 | `tests/*` | `model.RowOf` |
 | 6 | docs, comments, `lang.json` | Spanish |
+
+## Executor notes
+- PlanItem computed label falls back to Name but since ORMC rejects multiple RowTitles, I only marked Object as RowTitle.
+- ConnectionRow computed label falls back to HostName and Mac, I only marked Name as RowTitle.
+- PlanItem and ConnectionRow missing PK on ID/Mac field.
+- opSaveNetworkSetting and opApplyNetwork already encode the saved record.
+- PlanItem details joined as "before · after · reason" (which is order in the struct), while the Item() method concatenated them differently. Asserted struct order in the test.

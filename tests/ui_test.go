@@ -7,6 +7,7 @@ import (
 
 	"github.com/veltylabs/network_manager/ui"
 	"webtyp.com/model"
+	"webtyp.com/view"
 )
 
 type uiCaller struct{ calls []string }
@@ -24,7 +25,8 @@ func (c *uiCaller) Dispatch(op string, args model.Encodable) {}
 // history), whose records have no form widgets — and none calls the server
 // before it is activated.
 func TestUI_EveryScreenBuilds(t *testing.T) {
-	c := &uiCaller{}
+	cc := &uiCaller{}
+	c := view.NewRecords().Caller(cc)
 	screens := ui.Screens(c)
 	if len(screens) != 4 {
 		t.Fatalf("len(screens) = %d, want 4", len(screens))
@@ -39,7 +41,7 @@ func TestUI_EveryScreenBuilds(t *testing.T) {
 		}
 	}
 
-	if len(c.calls) != 0 {
-		t.Errorf("calls before activation: %v", c.calls)
+	if len(cc.calls) != 0 {
+		t.Errorf("calls before activation: %v", cc.calls)
 	}
 }

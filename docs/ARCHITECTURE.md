@@ -1,70 +1,52 @@
-# network_manager — architecture
+# network_manager — arquitectura
 
-## Domain scope
+## Alcance del dominio
 
-`network_manager` makes a site's network **follow its device inventory**. The inventory
-(`device_manager`) says which devices exist, their network cards (MAC, IP) and how much of the network
-each may use. This module turns that into a plan for the router, shows it to an administrator
-together with who is connected right now, and applies exactly what the administrator reviewed.
+`network_manager` hace que la red de un sitio **siga su inventario de dispositivos**. El inventario (`device_manager`) dice qué dispositivos existen, sus tarjetas de red (MAC, IP) y cuánto de la red puede usar cada uno. Este módulo convierte eso en un plan para el router, lo muestra a un administrador junto con quién está conectado en este momento, y aplica exactamente lo que el administrador revisó.
 
-You meet it when an administrator registers a PC or changes a device's access level and then opens
-the "Red" screen to review and apply the change, or wants to know who is connected before touching
-the router.
+Lo encuentras cuando un administrador registra una PC o cambia el nivel de acceso de un dispositivo y luego abre la pantalla "Red" para revisar y aplicar el cambio, o quiere saber quién está conectado antes de tocar el router.
 
-It knows **no router brand**: the router arrives as a `webtyp.com/network.Gateway`
-(`veltylabs/mikrotik` in production, `network/mem` in tests).
+No conoce **marcas de routers**: el router llega como un `webtyp.com/network.Gateway` (`veltylabs/mikrotik` en producción, `network/mem` en tests).
 
-## Entities
+## Entidades
 
-- **NetworkSetting** (one per tenant): the site-wide values that change without recompiling —
-  name of the router's DHCP server, the dynamic pool, the DNS filter resolver, and what unregistered
-  devices get (`no_address` or `local`). Maps 1:1 to `network.Settings`.
-- **NetworkApply** (history): one row per successful apply — when, the fingerprint, and how many
-  changes. Published as `network_manager.network.applied`.
-- Output-only rows (never stored): **PlanItem** (one change, conflict or warning of the current plan),
-  **ConnectionRow** (a device online, flagged as registered or not, with its inventory name),
-  **DiscoveredRow** (hand-made router configuration, for import).
+- **NetworkSetting** (una por inquilino): los valores de todo el sitio que cambian sin recompilar — nombre del servidor DHCP del router, el pool dinámico, el resolutor DNS de filtrado, y qué obtienen los dispositivos sin registrar (`no_address` o `local`). Mapea 1:1 a `network.Settings`.
+- **NetworkApply** (historial): una fila por aplicación exitosa — cuándo, el fingerprint, y cuántos cambios. Publicado como `network_manager.network.applied`.
+- Filas de solo salida (nunca se almacenan): **PlanItem** (un cambio, conflicto o advertencia del plan actual), **ConnectionRow** (un dispositivo en línea, marcado como registrado o no, con su nombre de inventario), **DiscoveredRow** (configuración de router hecha a mano, para importar).
 
-## Flow
+## Flujo
 
 ```
 device_manager ──HostSource.Hosts()──┐
-NetworkSetting ──────────────────────┼─► network.Desired ─► Gateway.Plan ─► PlanItems (operator reviews)
+NetworkSetting ──────────────────────┼─► network.Desired ─► Gateway.Plan ─► PlanItems (el operador revisa)
                                      │                                          │ fingerprint
-operator: apply_network(fingerprint) ┴─► Gateway.Apply(desired, fingerprint) ◄──┘
-                                          ├─ ErrPlanStale → 409 (re-plan)
+operador: apply_network(fingerprint) ┴─► Gateway.Apply(desired, fingerprint) ◄──┘
+                                          ├─ ErrPlanStale → 409 (re-planificar)
                                           ├─ ErrConflicts → 409
-                                          └─ ok → NetworkApply row + event
+                                          └─ ok → fila NetworkApply + evento
 ```
 
-## Decisions
+## Decisiones
 
-- **Plan, review, apply** — never apply on save or on a timer. Rationale in
-  `webtyp.com/network`'s ARCHITECTURE ("Plan, then apply").
-- **Settings live in the database**, so a site changes its DNS filter or DHCP server name without a
-  new build.
-- **Closed-option kinds** (the `unregistered` radio) live in the `kinds/` subpackage: ormc only
-  imports a kind constructor from a package of its own.
-- **No settings ⇒ no plan.** Until the tenant saves a `NetworkSetting`, `plan_network` and
-  `apply_network` answer 400 with `network settings not configured`: the module never guesses router
-  object names.
-- **Who is connected** comes from the gateway, cross-referenced with the inventory by MAC, so an
-  unregistered device stands out before closing the network to unregistered devices.
+- **Planificar, revisar, aplicar** — nunca aplicar al guardar o con un temporizador. Justificación en la ARQUITECTURA de `webtyp.com/network` ("Planificar, luego aplicar").
+- **La configuración vive en la base de datos**, por lo que un sitio cambia su filtro DNS o el nombre del servidor DHCP sin una nueva compilación.
+- **Tipos de opción cerrada** (el radio `unregistered`) viven en el subpaquete `kinds/`: ormc solo importa un constructor de tipo de un paquete propio.
+- **Sin configuración ⇒ sin plan.** Hasta que el inquilino guarda un `NetworkSetting`, `plan_network` y `apply_network` responden 400 con `la configuración de red no está configurada`: el módulo nunca adivina los nombres de los objetos del router.
+- **Quién está conectado** viene del gateway, cruzado con el inventario por MAC, para que un dispositivo sin registrar se destaque antes de cerrar la red a dispositivos sin registrar.
 
-## Ops
+## Operaciones
 
-| Op | Action | Resource | Description |
+| Op | Acción | Recurso | Descripción |
 |---|---|---|---|
-| `list_network_settings` | `r` | `network_setting` | The tenant's settings as a list of 0 or 1 rows (a view lists; empty = not configured) |
-| `save_network_setting` | `c`/`u` | `network_setting` | Create or replace the tenant's settings |
-| `plan_network` | `r` | `network` | Current plan: changes, conflicts, warnings (+ fingerprint on every row) |
-| `apply_network` | `u` | `network` | Apply the plan with the given fingerprint |
-| `list_connections` | `r` | `network` | Devices online now, flagged registered / unregistered |
-| `discover_network` | `r` | `network` | Hand-made router configuration (import preview) |
-| `import_network` | `c` | `network` | Create inventory hosts from the discovered configuration |
-| `list_network_applies` | `r` | `network` | Apply history |
+| `list_network_settings` | `r` | `network_setting` | La configuración del inquilino como una lista de 0 o 1 filas (una vista enumera; vacío = no configurado) |
+| `save_network_setting` | `c`/`u` | `network_setting` | Crear o reemplazar la configuración del inquilino |
+| `plan_network` | `r` | `network` | Plan actual: cambios, conflictos, advertencias (+ fingerprint en cada fila) |
+| `apply_network` | `u` | `network` | Aplicar el plan con el fingerprint dado |
+| `list_connections` | `r` | `network` | Dispositivos en línea ahora, marcados registrados / sin registrar |
+| `discover_network` | `r` | `network` | Configuración del router hecha a mano (vista previa de importación) |
+| `import_network` | `c` | `network` | Crear hosts de inventario desde la configuración descubierta |
+| `list_network_applies` | `r` | `network` | Historial de aplicaciones |
 
-## Out of scope (later phases)
+## Fuera de alcance (fases posteriores)
 
-Centralized access points (CAPsMAN), guest network (VLAN), QR onboarding of phones, and showing
-devices on `room_layout`'s floor plan — each extends `webtyp.com/network` first.
+Puntos de acceso centralizados (CAPsMAN), red de invitados (VLAN), integración QR de teléfonos, y mostrar dispositivos en el plano de planta de `room_layout` — cada uno extiende `webtyp.com/network` primero.

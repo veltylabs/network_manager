@@ -15,46 +15,7 @@ const (
 	labelApply   = "Apply"
 	confirmApply = "Apply these changes to the router?"
 
-	registeredLabel   = "registrado"
-	unregisteredLabel = "sin registrar"
-	arrow             = " → "
-	separator         = " · "
 )
-
-func (s *NetworkSetting) Item() view.Item {
-	return view.Item{ID: s.Id, Label: s.DhcpServer, Description: s.FilterDns + separator + s.Unregistered}
-}
-
-func (p *PlanItem) Item() view.Item {
-	desc := p.Reason
-	if p.Category == PlanItemChange {
-		desc = p.Before + arrow + p.After
-	}
-	label := p.Object
-	if label == "" {
-		label = p.Name
-	}
-	return view.Item{ID: p.Id, Label: label, Description: desc}
-}
-
-func (c *ConnectionRow) Item() view.Item {
-	label := c.Name
-	if label == "" {
-		label = c.HostName
-	}
-	if label == "" {
-		label = c.Mac
-	}
-	state := unregisteredLabel
-	if c.Registered {
-		state = registeredLabel
-	}
-	return view.Item{ID: c.Mac, Label: label, Description: c.Ip + separator + state}
-}
-
-func (a *NetworkApply) Item() view.Item {
-	return view.Item{ID: a.Id, Label: a.Fingerprint, Description: a.TenantId}
-}
 
 // NewSettingView lists and saves the tenant's settings.
 func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
