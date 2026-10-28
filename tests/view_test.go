@@ -8,7 +8,7 @@ import (
 	"webtyp.com/view"
 )
 
-// recordingCaller answers the plan list with two rows and records every call.
+// recordingCaller responde a la lista del plan con dos filas y registra cada llamada.
 type recordingCaller struct {
 	calls []string
 	args  []model.Encodable
@@ -30,7 +30,7 @@ func (c *recordingCaller) Call(op string, args model.Encodable, into model.Decod
 
 func (c *recordingCaller) Dispatch(op string, args model.Encodable) {}
 
-// Case 12: the plan view declares Apply and sends the rows' fingerprint.
+// Case 12: la vista del plan declara Apply y envía la huella digital de las filas.
 func TestPlanView_ApplyActionSendsFingerprint(t *testing.T) {
 	cc := &recordingCaller{}
 	c := view.NewRecords().Caller(cc)
@@ -65,7 +65,7 @@ func TestPlanView_ApplyActionSendsFingerprint(t *testing.T) {
 	}
 }
 
-func TestRowsDeclaredOnFields(t *testing.T) {
+func TestItemsDeclaredOnFields(t *testing.T) {
 	setting := networkmanager.NetworkSetting{
 		Id:           "1",
 		TenantId:     "t-1",
@@ -73,9 +73,9 @@ func TestRowsDeclaredOnFields(t *testing.T) {
 		FilterDns:    "8.8.8.8",
 		Unregistered: "drop",
 	}
-	settingRow := model.RowOf(&setting)
-	if settingRow.Title != "LAN" || settingRow.Detail != "8.8.8.8 · drop" {
-		t.Errorf("NetworkSetting row mismatch: %+v", settingRow)
+	settingRow := setting.Item()
+	if settingRow.Label != "LAN" || settingRow.Description != "8.8.8.8 · drop" {
+		t.Errorf("No coincide la fila de NetworkSetting: %+v", settingRow)
 	}
 
 	planItem := networkmanager.PlanItem{
@@ -88,9 +88,9 @@ func TestRowsDeclaredOnFields(t *testing.T) {
 		After:    "new",
 		Reason:   "changed",
 	}
-	planRow := model.RowOf(&planItem)
-	if planRow.Title != "host A" || planRow.Detail != "old · new · changed" {
-		t.Errorf("PlanItem row mismatch: %+v", planRow)
+	planRow := planItem.Item()
+	if planRow.Label != "host A" || planRow.Description != "old · new · changed" {
+		t.Errorf("No coincide la fila de PlanItem: %+v", planRow)
 	}
 
 	conn := networkmanager.ConnectionRow{
@@ -99,9 +99,9 @@ func TestRowsDeclaredOnFields(t *testing.T) {
 		Name:       "my-pc",
 		Registered: true,
 	}
-	connRow := model.RowOf(&conn)
-	if connRow.Title != "my-pc" || connRow.Detail != "10.0.0.1 · true" {
-		t.Errorf("ConnectionRow row mismatch: %+v", connRow)
+	connRow := conn.Item()
+	if connRow.Label != "my-pc" || connRow.Description != "10.0.0.1 · true" {
+		t.Errorf("No coincide la fila de ConnectionRow: %+v", connRow)
 	}
 
 	apply := networkmanager.NetworkApply{
@@ -109,8 +109,8 @@ func TestRowsDeclaredOnFields(t *testing.T) {
 		TenantId:    "t-1",
 		Fingerprint: "fp-123",
 	}
-	applyRow := model.RowOf(&apply)
-	if applyRow.Title != "fp-123" || applyRow.Detail != "t-1" {
-		t.Errorf("NetworkApply row mismatch: %+v", applyRow)
+	applyRow := apply.Item()
+	if applyRow.Label != "fp-123" || applyRow.Description != "t-1" {
+		t.Errorf("No coincide la fila de NetworkApply: %+v", applyRow)
 	}
 }

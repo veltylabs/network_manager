@@ -5,6 +5,7 @@ package networkmanager
 import (
 	"webtyp.com/model"
 	"webtyp.com/orm"
+	"fmt"
 	"webtyp.com/time"
 )
 
@@ -57,6 +58,10 @@ func (s *NetworkSettingList) DecodeFields(_ model.FieldReader) {}
 
 func (m *NetworkSetting) Validate(action byte) error {
 	return model.ValidateFields(action, m)
+}
+
+func (m *NetworkSetting) Item() model.Item {
+	return model.Item{ID: m.Id, Label: m.DhcpServer, Description: model.JoinItem(m.FilterDns, m.Unregistered)}
 }
 
 var NetworkSetting_ = struct {
@@ -137,6 +142,10 @@ func (s *NetworkApplyList) DecodeFields(_ model.FieldReader) {}
 
 func (m *NetworkApply) Validate(action byte) error {
 	return model.ValidateFields(action, m)
+}
+
+func (m *NetworkApply) Item() model.Item {
+	return model.Item{ID: m.Id, Label: m.Fingerprint, Description: m.TenantId}
 }
 
 var NetworkApply_ = struct {
@@ -233,6 +242,53 @@ func (m *PlanItem) Validate(action byte) error {
 	return model.ValidateFields(action, m)
 }
 
+func (m *PlanItem) Item() model.Item {
+	return model.Item{ID: m.Id, Label: m.Object, Description: model.JoinItem(m.Before, m.After, m.Reason)}
+}
+
+var PlanItem_ = struct {
+	Id string
+	Category string
+	Kind string
+	Object string
+	Name string
+	Mac string
+	Before string
+	After string
+	Reason string
+	Online string
+	Fingerprint string
+}{
+	Id: "id",
+	Category: "category",
+	Kind: "kind",
+	Object: "object",
+	Name: "name",
+	Mac: "mac",
+	Before: "before",
+	After: "after",
+	Reason: "reason",
+	Online: "online",
+	Fingerprint: "fingerprint",
+}
+
+func ReadOnePlanItem(qb *orm.QB, model *PlanItem) (*PlanItem, error) {
+	err := qb.ReadOne()
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+func ReadAllPlanItem(qb *orm.QB) (PlanItemList, error) {
+	var results PlanItemList
+	err := qb.ReadAll(
+		func() model.Model { return &PlanItem{} },
+		func(m model.Model) { results = append(results, m.(*PlanItem)) },
+	)
+	return results, err
+}
+
 type ConnectionRow struct {
 	Mac string
 	Ip string
@@ -281,6 +337,43 @@ func (m *ConnectionRow) Validate(action byte) error {
 	return model.ValidateFields(action, m)
 }
 
+func (m *ConnectionRow) Item() model.Item {
+	return model.Item{ID: m.Mac, Label: m.Name, Description: model.JoinItem(m.Ip, fmt.Sprintf("%t", m.Registered))}
+}
+
+var ConnectionRow_ = struct {
+	Mac string
+	Ip string
+	HostName string
+	Source string
+	Registered string
+	Name string
+}{
+	Mac: "mac",
+	Ip: "ip",
+	HostName: "host_name",
+	Source: "source",
+	Registered: "registered",
+	Name: "name",
+}
+
+func ReadOneConnectionRow(qb *orm.QB, model *ConnectionRow) (*ConnectionRow, error) {
+	err := qb.ReadOne()
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+func ReadAllConnectionRow(qb *orm.QB) (ConnectionRowList, error) {
+	var results ConnectionRowList
+	err := qb.ReadAll(
+		func() model.Model { return &ConnectionRow{} },
+		func(m model.Model) { results = append(results, m.(*ConnectionRow)) },
+	)
+	return results, err
+}
+
 type DiscoveredRow struct {
 	Mac string
 	Ip string
@@ -321,6 +414,35 @@ func (s *DiscoveredRowList) DecodeFields(_ model.FieldReader) {}
 
 func (m *DiscoveredRow) Validate(action byte) error {
 	return model.ValidateFields(action, m)
+}
+
+var DiscoveredRow_ = struct {
+	Mac string
+	Ip string
+	Name string
+	Internet string
+}{
+	Mac: "mac",
+	Ip: "ip",
+	Name: "name",
+	Internet: "internet",
+}
+
+func ReadOneDiscoveredRow(qb *orm.QB, model *DiscoveredRow) (*DiscoveredRow, error) {
+	err := qb.ReadOne()
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+func ReadAllDiscoveredRow(qb *orm.QB) (DiscoveredRowList, error) {
+	var results DiscoveredRowList
+	err := qb.ReadAll(
+		func() model.Model { return &DiscoveredRow{} },
+		func(m model.Model) { results = append(results, m.(*DiscoveredRow)) },
+	)
+	return results, err
 }
 
 type ImportReport struct {

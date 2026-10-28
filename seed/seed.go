@@ -13,7 +13,7 @@ const (
 	FilterDNS   = "1.1.1.3"
 )
 
-// Load saves the demo settings for tenantID through the module, so the row is validated.
+// Load guarda la configuración de demostración para tenantID a través del módulo, así la fila se valida.
 func Load(m *networkmanager.Module, tenantID string) (networkmanager.NetworkSetting, error) {
 	s, err := m.SaveSetting(networkmanager.NetworkSetting{TenantId: tenantID, DhcpServer: DHCPServer,
 		DynamicPool: DynamicPool, FilterDns: FilterDNS, Unregistered: network.UnregisteredLocalName})
