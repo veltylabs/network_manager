@@ -65,7 +65,7 @@ func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
 	return s, nil
 }
 
-// SaveSetting creates or replaces the tenant's single settings row.
+// SaveSetting crea o reemplaza la única fila de configuraciones del tenant.
 func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	if _, err := network.ParseUnregistered(s.Unregistered); err != nil {
 		return NetworkSetting{}, ValidationError{Err: err}
@@ -231,8 +231,8 @@ func (m *Module) ListApplies(tenantID string) ([]NetworkApply, error) {
 	return out, nil
 }
 
-// planItems flattens a plan into list rows: changes, then conflicts, then
-// warnings; every row carries the fingerprint, online marks a connected MAC.
+// planItems aplana un plan en filas de lista: cambios, luego conflictos, luego
+// advertencias; cada fila lleva la huella digital, online marca una MAC conectada.
 func planItems(p network.Plan, conns []network.Connection) []PlanItem {
 	online := func(mac string) bool {
 		for _, c := range conns {

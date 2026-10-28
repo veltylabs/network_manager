@@ -46,14 +46,14 @@ func TestSettings_SaveAndReadBack(t *testing.T) {
 	if s.DhcpServer != "dhcp LAN" || s.DynamicPool != "default-dhcp" || s.FilterDns != "1.1.1.3" {
 		t.Errorf("read back %+v", s)
 	}
-	// Saving again replaces the single row.
+	// Guardar de nuevo reemplaza la única fila.
 	s.FilterDns = "1.0.0.3"
 	if _, err := f.m.SaveSetting(s); err != nil {
 		t.Fatalf("SaveSetting (replace): %v", err)
 	}
 	if ctx := f.invoke(t, networkmanager.OpListNetworkSettings, `{}`); statusOf(ctx) != 200 ||
 		!contains(string(ctx.ResponseBody()), "1.0.0.3") || contains(string(ctx.ResponseBody()), "1.1.1.3") {
-		t.Errorf("list_network_settings = %d %s, want exactly the replaced row", statusOf(ctx), ctx.ResponseBody())
+		t.Errorf("list_network_settings = %d %s, se esperaba exactamente la fila reemplazada", statusOf(ctx), ctx.ResponseBody())
 	}
 }
 
@@ -75,7 +75,7 @@ func TestPlan_NotConfiguredIs400(t *testing.T) {
 }
 
 // Case 3: the plan lists both hosts as adds, one fingerprint, online marked.
-func TestPlan_RowsCarryFingerprintAndOnline(t *testing.T) {
+func TestPlan_ItemsCarryFingerprintAndOnline(t *testing.T) {
 	f := setup(t)
 	f.configured(t)
 	f.inv.hosts = []network.Host{hostPC, hostPrinter}
@@ -91,15 +91,15 @@ func TestPlan_RowsCarryFingerprintAndOnline(t *testing.T) {
 		t.Fatalf("Plan: %v", err)
 	}
 	if p.Fingerprint == "" || !contains(body, string(p.Fingerprint)) {
-		t.Errorf("rows do not carry the plan's fingerprint %q: %s", p.Fingerprint, body)
+		t.Errorf("las filas no llevan la huella digital del plan %q: %s", p.Fingerprint, body)
 	}
 	for _, h := range []network.Host{hostPC, hostPrinter} {
 		if !contains(body, h.MAC) {
-			t.Errorf("plan rows lack %s: %s", h.MAC, body)
+			t.Errorf("las filas del plan carecen de %s: %s", h.MAC, body)
 		}
 	}
 	if !contains(body, `"kind":"add"`) || !contains(body, `"online":true`) {
-		t.Errorf("expected add rows and one online row: %s", body)
+		t.Errorf("se esperaban filas de adición y una fila online: %s", body)
 	}
 	if len(conns) != 1 {
 		t.Errorf("connections = %d, want 1", len(conns))
@@ -156,7 +156,7 @@ func TestApply_ConflictIs409(t *testing.T) {
 	f.gw.AddUnmanaged(network.Discovered{MAC: "00:1A:2B:00:00:09", IP: hostPC.IP})
 	ctx := f.invoke(t, networkmanager.OpPlanNetwork, `{}`)
 	if !contains(string(ctx.ResponseBody()), `"category":"conflict"`) {
-		t.Fatalf("plan has no conflict row: %s", ctx.ResponseBody())
+		t.Fatalf("el plan no tiene fila de conflicto: %s", ctx.ResponseBody())
 	}
 	p, _, _ := f.m.Plan(tenantA)
 	if ctx := f.invoke(t, networkmanager.OpApplyNetwork, `{"fingerprint":"`+string(p.Fingerprint)+`"}`); statusOf(ctx) != 409 {
@@ -175,10 +175,10 @@ func TestConnections_RegisteredFlag(t *testing.T) {
 		t.Fatalf("Connections = %+v (err %v)", rows, err)
 	}
 	if !rows[0].Registered || rows[0].Name != hostPC.Name || rows[0].Source != networkmanager.SourceDHCP {
-		t.Errorf("registered row = %+v", rows[0])
+		t.Errorf("fila registrada = %+v", rows[0])
 	}
 	if rows[1].Registered || rows[1].Source != networkmanager.SourceARP {
-		t.Errorf("unregistered row = %+v", rows[1])
+		t.Errorf("fila no registrada = %+v", rows[1])
 	}
 }
 

@@ -15,7 +15,7 @@
 - `css.go`, `svg.go`, `js.go`, `html.go` carry `//go:build !wasm`; no `ssr.go`, no `front.go`.
 - Build tags: `wasm`/`!wasm` only when the API does not exist on that platform; `browser`/`!browser` when the file belongs to another binary One main per folder, no destination tag: `web/browser/main.go` → `web/public/browser.wasm`, `web/server/main.go` → `web/server/server`, `web/edge/main.go` → `web/edge/edge.wasm`.
 - Code and keys in English; UI text is `lang.Text`, translations live in `lang.json`. Comments and docs: English in `webtyp/*`; in `veltylabs/*` **every README, `docs/*` file, diagram and code comment is in Spanish**, written for a reader with little technical background, and each exported symbol's comment shows a short usage example.
-- A translation key is reused, never duplicated as a near-identical phrase (`"not a valid integer"` + `"not a valid decimal number"` repeats `"not a valid"` three ways instead of composing it once) — every library ships to WASM/TinyGo, so each unreused phrase is dictionary rows AND binary bytes, in every consumer, forever. A token that doesn't need translating (a kind/type name like `int`) is passed as data (a variable), never as a string literal — a literal becomes a dictionary key whether or not it needed one.
+- A translation key is reused, never duplicated as a near-identical phrase (`"not a valid integer"` + `"not a valid decimal number"` repeats `"not a valid"` three ways instead of composing it once) — every library ships to WASM/TinyGo, así que cada frase no reutilizada es filas de diccionario Y bytes binarios, in every consumer, forever. A token that doesn't need translating (a kind/type name like `int`) is passed as data (a variable), never as a string literal — a literal becomes a dictionary key whether or not it needed one.
 - Tests cover behaviour and domain rules, never the look (CSS, colours, markup order, class strings). In `tests/` (external package), real stack with fakes only at the edge; run `gotest`.
 - Docs (`README.md`, `docs/*`) updated with the API; permanent docs never link `docs/PLAN.md`.
 - Before the PR: `git diff --stat main` lists every file of the plan's stages, and nothing the plan did not order is deleted.
@@ -232,7 +232,7 @@ reflection-free and TinyGo-sized. A module targets `wasm`/TinyGo first, so it fo
 The whitelist and blacklist above apply to the **root domain package**. Three sub-packages are exempt, and only them:
 
 - `ui/` (package `ui`, `ui/browser.go` tagged `browser`; `css.go`/`svg.go` tagged `!wasm`) may import `webtyp.com/components/*`, `dom`, `html`, `css`, `svg`, `widget`. It is the module's screen: `const ID`, `const Label` and `Screens(caller router.Caller) []view.Screen`.
-- `seed/` (package `seed`, no build tag) holds demo data: `Load(...) (Data, error)`, which writes through the module's own methods so every row is validated, and returns the rows it created so downstream demos can reference them.
+- `seed/` (package `seed`, no build tag) holds demo data: `Load(...) (Data, error)`, which writes through the module's own methods so every row is validated, and devuelve las filas que creó para que las demos posteriores puedan referenciarlas.
 - `web/` (package `main`, `web/browser.go` tagged `browser`) is the runnable demo and may additionally import the concrete `webtyp.com/storage/mem`, `webtyp.com/router/loopback`, `webtyp.com/events/mock`, `webtyp.com/unixid` and `webtyp.com/auth/trusted_ip` (for `ValidateRUT`).
 
 **Dependencies between modules form a DAG.** The root domain package still imports no sibling module. `ui/`, `seed/` and `web/` may import the domain, `ui/` and `seed/` packages of **upstream** modules only. Current graph: `device_manager`, `item_catalog`, `patient_directory`, `business_calendar`, `payment_manager` (leaves) ← `staff_manager` ← `appointment_booking` ← `clinical_encounter` (`appointment_booking` also depends on `item_catalog`, `patient_directory`, `business_calendar`, `payment_manager`; `clinical_encounter` also on `patient_directory` and `staff_manager`). A screen that mixes modules lives in the most-downstream module it touches.
@@ -252,7 +252,7 @@ The whitelist and blacklist above apply to the **root domain package**. Three su
 - Conformance suites live in their own same-named file (`tests/conformance_test.go`) — test files
   stay small and modular, never one giant file.
 - Every tenant-scoped module includes **tenant-isolation tests** (tenant A cannot read/update/
-  delete tenant B's rows through any service method or op) — in the module's own suite, not
+  borrar las filas del tenant B a través de cualquier método de servicio u op) — en la propia suite del módulo, no
   deferred to a backlog.
 - Tests assert on results — a test that calls methods and discards every return
   (`_ = m.Validate(0)`) inflates coverage while proving nothing; coverage earned that way does not
@@ -292,7 +292,7 @@ never runs `codejob` or `gopush` itself — dispatch and close are the human's c
   keeps a history of applies, and shows who is connected. Design: `docs/ARCHITECTURE.md`.
 - **Never imports `device_manager` nor `veltylabs/mikrotik`.** Both arrive as `webtyp.com/network`
   interfaces through `Deps`. Tests use `webtyp.com/network/mem` and a hand-written `HostSource`.
-- **Tenant-scoped**: `network_setting` and `network_apply` rows carry `tenant_id`.
+- **Tenant-scoped**: las filas `network_setting` y `network_apply` llevan `tenant_id`.
 - **Publishes events**: `network_manager.network.applied` (payload `*NetworkApply`).
 - **Never applies on its own**: no timer, no apply-on-save. Applying is always the
   `apply_network` operation with the fingerprint of a plan the operator saw.
