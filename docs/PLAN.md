@@ -2,8 +2,10 @@
 PLAN: "refactor: module review — errors via rpc.WriteError, resources from tables, screens via view.MountSave, foreign keys, translations"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 3790235254337344517
+PR: https://github.com/veltylabs/network_manager/pull/7
+REVIEWED_COMMIT: f7fabefc0662284574466f61a516234b98f1aacd
 ---
 
 > Read AGENTS.md at the repo root before any change.
