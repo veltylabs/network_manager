@@ -3,14 +3,14 @@ package ui
 // Screen identities: RBAC resource prefix on the server, nav route on the client.
 const (
 	ID    = "network_manager"
-	Label = "Red"
+	Label = "Network"
 
 	PlanID    = "network_manager_plan"
-	PlanLabel = "Cambios pendientes"
+	PlanLabel = "Pending changes"
 
 	ConnectionsID    = "network_manager_connections"
-	ConnectionsLabel = "Conectados"
+	ConnectionsLabel = "Connected"
 
 	HistoryID    = "network_manager_history"
-	HistoryLabel = "Historial de red"
+	HistoryLabel = "Network history"
 )

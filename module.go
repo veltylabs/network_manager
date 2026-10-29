@@ -68,13 +68,13 @@ func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
 // SaveSetting crea o reemplaza la única fila de configuraciones del tenant.
 func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	if _, err := network.ParseUnregistered(s.Unregistered); err != nil {
-		return NetworkSetting{}, ValidationError{Err: err}
+		return NetworkSetting{}, &model.FieldError{Field: "unregistered", Err: err}
 	}
 	s.FilterDns = input.CanonicalIP(s.FilterDns)
 	existing, err := m.GetSetting(s.TenantId)
 
 	creating := false
-	if e, ok := err.(domainError); ok && e == ErrNotFound {
+	if model.KindOf(err) == model.ErrorNotFound {
 		creating = true
 	}
 
@@ -90,7 +90,7 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	}
 	s.UpdatedAt = time.NowNano()
 	if err := s.Validate(action); err != nil {
-		return NetworkSetting{}, ValidationError{Err: err}
+		return NetworkSetting{}, &model.FieldError{Field: "unregistered", Err: err}
 	}
 	if creating {
 		err = m.db.Create(&s)
@@ -107,7 +107,7 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 func (m *Module) Desired(tenantID string) (network.Desired, error) {
 	s, err := m.GetSetting(tenantID)
 	if err != nil {
-		if e, ok := err.(domainError); ok && e == ErrNotFound {
+		if model.KindOf(err) == model.ErrorNotFound {
 			return network.Desired{}, ErrNotConfigured
 		}
 		return network.Desired{}, err
@@ -153,6 +153,9 @@ func (m *Module) Apply(tenantID, fingerprint string) (NetworkApply, error) {
 	}
 	p, err := m.gateway.Apply(d, network.Fingerprint(fingerprint))
 	if err != nil {
+		if network.IsPlanStale(err) || network.IsConflicts(err) {
+			return NetworkApply{}, model.Conflict(err.Error())
+		}
 		return NetworkApply{}, err
 	}
 	a := NetworkApply{Id: m.ids.NewID(), TenantId: tenantID, Fingerprint: fingerprint,

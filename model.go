@@ -10,10 +10,11 @@ import (
 // ModelName is this module's identity: every op is qualified as
 // "network_manager.<name>" on the wire.
 const ModelName = "network_manager"
+var ResourceNetwork = model.FeatureResource("network")
 
 const (
-	ResourceNetwork        = "network"
-	ResourceNetworkSetting = "network_setting"
+
+
 )
 
 // PlanItem categories — the ONLY place these literals exist.
@@ -39,19 +40,20 @@ const (
 
 const TopicNetworkApplied = "network_manager.network.applied"
 
-type domainError string
 
-func (e domainError) Error() string { return string(e) }
+
+
 
 const (
-	ErrNotConfigured domainError = "network settings not configured"
-	ErrNotFound      domainError = "network setting not found"
+	ErrNotConfigured model.Invalid  = "network settings not configured"
+	ErrNotFound      model.NotFound = "network setting not found"
+	ErrCannotRead    model.Invalid  = "network_manager: cannot read the request"
 )
 
 // ValidationError marks a client error (400) from a service method.
-type ValidationError struct{ Err error }
 
-func (v ValidationError) Error() string { return v.Err.Error() }
+
+
 
 // RouterOS object names carry spaces, '-', '_' and '.' ("dhcp LAN", "default-dhcp").
 // An explicit field whitelist replaces the Text kind's default floor.

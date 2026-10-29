@@ -2,8 +2,9 @@ package networkmanager
 
 import (
 	"webtyp.com/model"
-	"webtyp.com/network"
 	"webtyp.com/router"
+	"webtyp.com/rpc"
+	"webtyp.com/view"
 )
 
 const (
@@ -20,8 +21,15 @@ const (
 func (m *Module) ModelName() string { return ModelName }
 
 func (m *Module) MountOperations(reg router.OperationRegistry) {
-	reg.Operation(OpListNetworkSettings, m.opListNetworkSettings).Requires(ResourceNetworkSetting, model.Read).Accepts(nil)
-	reg.Operation(OpSaveNetworkSetting, m.opSaveNetworkSetting).Requires(ResourceNetworkSetting, model.Create|model.Update).Accepts(&NetworkSetting{})
+	reg.Operation(OpListNetworkSettings, m.opListNetworkSettings).Requires(model.ResourceOf(&NetworkSettingModel), model.Read).Accepts(nil)
+	view.MountSave(reg, OpSaveNetworkSetting, func(s *NetworkSetting) error {
+		if s.TenantId == "" {
+			s.TenantId = m.tenantID
+		}
+		saved, err := m.SaveSetting(*s)
+		*s = saved
+		return err
+	}).Requires(model.ResourceOf(&NetworkSettingModel), model.Create|model.Update)
 	reg.Operation(OpPlanNetwork, m.opPlanNetwork).Requires(ResourceNetwork, model.Read).Accepts(nil)
 	reg.Operation(OpApplyNetwork, m.opApplyNetwork).Requires(ResourceNetwork, model.Update).Accepts(&ApplyNetworkArgs{})
 	reg.Operation(OpListConnections, m.opListConnections).Requires(ResourceNetwork, model.Read).Accepts(nil)
@@ -33,74 +41,30 @@ func (m *Module) MountOperations(reg router.OperationRegistry) {
 var _ router.OperationModule = (*Module)(nil)
 
 // statusFor maps a service error to its HTTP status (AGENTS.md convention).
-func statusFor(err error) int {
-	if err == nil {
-		return 200
-	}
-	if _, ok := err.(ValidationError); ok {
-		return 400
-	}
-	if e, ok := err.(domainError); ok {
-		switch e {
-		case ErrNotConfigured:
-			return 400
-		case ErrNotFound:
-			return 404
-		}
-	}
-	if network.IsInvalid(err) {
-		return 400
-	}
-	if network.IsPlanStale(err) || network.IsConflicts(err) {
-		return 409
-	}
-	return 500
-}
 
 func (m *Module) opListNetworkSettings(ctx router.Context) {
 	list := NetworkSettingList{}
 	s, err := m.GetSetting(m.tenantID)
 
-	isNotFound := false
-	if e, ok := err.(domainError); ok && e == ErrNotFound {
-		isNotFound = true
-	}
+	isNotFound := model.KindOf(err) == model.ErrorNotFound
 
 	if err != nil && !isNotFound {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 		return
 	}
 	if err == nil {
 		list = append(list, &s)
 	}
 	if err := ctx.Encode(&list); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
-func (m *Module) opSaveNetworkSetting(ctx router.Context) {
-	var s NetworkSetting
-	if err := ctx.Decode(&s); err != nil {
-		ctx.WriteStatus(400)
-		return
-	}
-	if s.TenantId == "" {
-		s.TenantId = m.tenantID
-	}
-	saved, err := m.SaveSetting(s)
-	if err != nil {
-		ctx.WriteStatus(statusFor(err))
-		return
-	}
-	if err := ctx.Encode(&saved); err != nil {
-		ctx.WriteStatus(500)
-	}
-}
 
 func (m *Module) opPlanNetwork(ctx router.Context) {
 	p, conns, err := m.Plan(m.tenantID)
 	if err != nil {
-		ctx.WriteStatus(statusFor(err))
+		rpc.WriteError(ctx, err)
 		return
 	}
 	items := planItems(p, conns)
@@ -109,34 +73,34 @@ func (m *Module) opPlanNetwork(ctx router.Context) {
 		list[i] = &items[i]
 	}
 	if err := ctx.Encode(&list); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
 func (m *Module) opApplyNetwork(ctx router.Context) {
 	var args ApplyNetworkArgs
 	if err := ctx.Decode(&args); err != nil {
-		ctx.WriteStatus(400)
+		rpc.WriteError(ctx, ErrCannotRead)
 		return
 	}
 	if err := args.Validate(model.ActionUpdate); err != nil {
-		ctx.WriteStatus(400)
+		rpc.WriteError(ctx, ErrCannotRead)
 		return
 	}
 	applied, err := m.Apply(m.tenantID, args.Fingerprint)
 	if err != nil {
-		ctx.WriteStatus(statusFor(err))
+		rpc.WriteError(ctx, err)
 		return
 	}
 	if err := ctx.Encode(&applied); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
 func (m *Module) opListConnections(ctx router.Context) {
 	rows, err := m.Connections()
 	if err != nil {
-		ctx.WriteStatus(statusFor(err))
+		rpc.WriteError(ctx, err)
 		return
 	}
 	list := make(ConnectionRowList, len(rows))
@@ -144,14 +108,14 @@ func (m *Module) opListConnections(ctx router.Context) {
 		list[i] = &rows[i]
 	}
 	if err := ctx.Encode(&list); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
 func (m *Module) opDiscoverNetwork(ctx router.Context) {
 	rows, err := m.Discover()
 	if err != nil {
-		ctx.WriteStatus(statusFor(err))
+		rpc.WriteError(ctx, err)
 		return
 	}
 	list := make(DiscoveredRowList, len(rows))
@@ -159,25 +123,25 @@ func (m *Module) opDiscoverNetwork(ctx router.Context) {
 		list[i] = &rows[i]
 	}
 	if err := ctx.Encode(&list); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
 func (m *Module) opImportNetwork(ctx router.Context) {
 	rep, err := m.Import()
 	if err != nil {
-		ctx.WriteStatus(statusFor(err))
+		rpc.WriteError(ctx, err)
 		return
 	}
 	if err := ctx.Encode(&rep); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
 
 func (m *Module) opListNetworkApplies(ctx router.Context) {
 	applies, err := m.ListApplies(m.tenantID)
 	if err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 		return
 	}
 	list := make(NetworkApplyList, len(applies))
@@ -185,6 +149,6 @@ func (m *Module) opListNetworkApplies(ctx router.Context) {
 		list[i] = &applies[i]
 	}
 	if err := ctx.Encode(&list); err != nil {
-		ctx.WriteStatus(500)
+		rpc.WriteError(ctx, err)
 	}
 }
