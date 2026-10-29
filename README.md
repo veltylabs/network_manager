@@ -54,3 +54,5 @@ Ejecuta `webtyp` en la raíz del repositorio: gateway en memoria y en el navegad
 |---|---|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Alcance, entidades, flujo, decisiones, operaciones |
 | [Diagrama de Base de Datos](docs/diagrams/database.md) | ERD en Mermaid |
+
+Errores por `rpc.WriteError`; permisos por tabla (`model.ResourceOf`); guardar/borrar con `view.MountSave`/`MountDelete`; claves foráneas declaradas.

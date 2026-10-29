@@ -5,7 +5,7 @@ package networkmanager
 import (
 	"webtyp.com/model"
 	"webtyp.com/orm"
-	"fmt"
+	"webtyp.com/fmt"
 	"webtyp.com/time"
 )
 
@@ -338,7 +338,7 @@ func (m *ConnectionRow) Validate(action byte) error {
 }
 
 func (m *ConnectionRow) Item() model.Item {
-	return model.Item{ID: m.Mac, Label: m.Name, Description: model.JoinItem(m.Ip, fmt.Sprintf("%t", m.Registered))}
+	return model.Item{ID: m.Mac, Label: m.Name, Description: model.JoinItem(m.Ip, fmt.Convert(m.Registered).String())}
 }
 
 var ConnectionRow_ = struct {

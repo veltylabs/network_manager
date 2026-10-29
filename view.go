@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	titleSettings    = "Red"
-	titlePlan        = "Cambios pendientes"
-	titleConnections = "Conectados"
-	titleHistory     = "Historial de cambios"
+	titleSettings    = "Network"
+	titlePlan        = "Pending changes"
+	titleConnections = "Connected"
+	titleHistory     = "Change history"
 
 	labelApply   = "Apply"
 	confirmApply = "Apply these changes to the router?"
