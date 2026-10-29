@@ -30,6 +30,6 @@ require (
 	webtyp.com/filepath v0.1.0 // indirect
 	webtyp.com/font v0.0.5 // indirect
 	webtyp.com/json v0.5.37 // indirect
-	webtyp.com/rpc v0.2.7 // indirect
+	webtyp.com/rpc v0.2.10 // indirect
 	webtyp.com/widget v0.6.45 // indirect
 )
