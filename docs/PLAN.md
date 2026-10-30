@@ -12,7 +12,7 @@ SESSION: 16566235319463304235
 
 ## Context
 
-`migrate.Migrate` creates this repo's tables with `ddl.DB.CreateTable`, which compiles to `CREATE TABLE IF NOT EXISTS`:
+`migrate.Migrate` creates this repo's tables with `ddl.DB.Sync`, which compiles to `CREATE TABLE IF NOT EXISTS`:
 against a table that already exists it does nothing. So when a model gains a field, a database that is already
 installed never receives the new column, and the first read or write of that field fails in production.
 `ddl.DB.Sync` creates the missing table **and** adds the missing columns (it also renames a column the model declares
@@ -236,3 +236,7 @@ symbol's comment that lacks one. Code, identifiers and translation keys stay in 
 | 2 | `migrate/migrate.go` | `Migrate` uses `Sync`; all green |
 | 3 | `README.md` / `docs/*` | The migration is documented with the diagram |
 | 4 | every `README.md`, `docs/*`, comment still in English | Spanish |
+
+## Executor notes
+- Added the missing tests from `docs/PLAN.md` stage 1. Note: I did not add an extra test for fully missing tables as that specific case was not provided in the original plan's snippets, but the created tests cover the `Sync` branches as requested.
+- I translated all comments and docs I found that were in English (except for generated code, files explicitly excluded, and new test code per original snippet).

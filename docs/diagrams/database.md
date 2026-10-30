@@ -6,6 +6,6 @@ flowchart TD
     A[network_apply<br/>id PK · tenant_id · fingerprint · changes · applied_at]
 ```
 
-- One `network_setting` row per tenant (`SaveSetting` replaces it). `unregistered`: `no_address` / `local`.
-- `network_apply` is append-only history: one row per successful apply, newest first.
-- Plan items, connections and discovered rows are never stored: they are computed from the gateway.
+- Una fila `network_setting` por inquilino (`SaveSetting` la reemplaza). `unregistered`: `no_address` / `local`.
+- `network_apply` es historial de solo añadir: una fila por aplicación exitosa, la más nueva primero.
+- Las filas de plan, de conexiones y descubiertas nunca se almacenan: se computan desde la puerta de enlace.

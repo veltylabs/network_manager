@@ -1,6 +1,6 @@
-// Package kinds holds network_manager's closed-option field kinds. They live in
-// their own package because ormc resolves a field's kind by compiling and
-// running its constructor, which it can only import from a package of its own.
+// Package kinds contiene los tipos de campos de opción cerrada de network_manager. Viven en
+// su propio paquete porque ormc resuelve el tipo de un campo compilando y
+// ejecutando su constructor, el cual solo puede importar desde su propio paquete.
 package kinds
 
 import (
@@ -9,8 +9,9 @@ import (
 	"webtyp.com/network"
 )
 
-// UnregisteredPolicy is the closed-options radio for NetworkSetting.unregistered;
-// the values are webtyp.com/network's names.
+// UnregisteredPolicy es el radio de opciones cerradas para NetworkSetting.unregistered;
+// los valores son los nombres de webtyp.com/network.
+// Ejemplo: policy := kinds.UnregisteredPolicy()
 func UnregisteredPolicy() input.Input {
 	return input.Radio(
 		fmt.KeyValue{Key: network.UnregisteredNoAddressName, Value: "No IP"},

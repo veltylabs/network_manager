@@ -7,12 +7,13 @@ import (
 	"webtyp.com/svg/sprite"
 )
 
-// Icons hosts IconID/IconSvg for discovery and use in config.
+// Icons aloja IconID/IconSvg para descubrimiento y uso en la configuración.
+// Ejemplo: var icons ui.Icons
 type Icons struct{}
 
 func (m *Icons) IconID() string { return ID }
 
-// A Wi-Fi glyph: the screens administer the network.
+// Un glifo de Wi-Fi: las pantallas administran la red.
 func (m *Icons) IconSvg() *sprite.Sprite {
 	return sprite.NewSprite(
 		sprite.Define(svg.Icon(ID), "0 0 24 24",

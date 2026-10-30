@@ -40,7 +40,7 @@ func (m *Module) MountOperations(reg router.OperationRegistry) {
 
 var _ router.OperationModule = (*Module)(nil)
 
-// statusFor maps a service error to its HTTP status (AGENTS.md convention).
+// statusFor mapea un error de servicio a su estado HTTP (convención de AGENTS.md).
 
 func (m *Module) opListNetworkSettings(ctx router.Context) {
 	list := NetworkSettingList{}
