@@ -7,8 +7,9 @@ import (
 	"github.com/veltylabs/network_manager/kinds"
 )
 
-// ModelName is this module's identity: every op is qualified as
-// "network_manager.<name>" on the wire.
+// ModelName es la identidad de este módulo: cada operación se cualifica como
+// "network_manager.<name>" en la red.
+// Ejemplo: moduleName := networkmanager.ModelName
 const ModelName = "network_manager"
 var ResourceNetwork = model.FeatureResource("network")
 
@@ -17,14 +18,14 @@ const (
 
 )
 
-// PlanItem categories — the ONLY place these literals exist.
+// Categorías de PlanItem — el ÚNICO lugar donde existen estos literales.
 const (
 	PlanItemChange   = "change"
 	PlanItemConflict = "conflict"
 	PlanItemWarning  = "warning"
 )
 
-// PlanItem kinds (network.ChangeKind names).
+// Tipos de PlanItem (nombres de network.ChangeKind).
 const (
 	ChangeKindAdd    = "add"
 	ChangeKindUpdate = "update"
@@ -32,7 +33,7 @@ const (
 	ChangeKindAdopt  = "adopt"
 )
 
-// ConnectionRow sources (network.Source names).
+// Orígenes de ConnectionRow (nombres de network.Source).
 const (
 	SourceDHCP = "dhcp"
 	SourceARP  = "arp"
@@ -50,13 +51,13 @@ const (
 	ErrCannotRead    model.Invalid  = "network_manager: cannot read the request"
 )
 
-// ValidationError marks a client error (400) from a service method.
+// ValidationError marca un error del cliente (400) desde un método de servicio.
 
 
 
 
-// RouterOS object names carry spaces, '-', '_' and '.' ("dhcp LAN", "default-dhcp").
-// An explicit field whitelist replaces the Text kind's default floor.
+// Los nombres de objetos de RouterOS llevan espacios, '-', '_' y '.' ("dhcp LAN", "default-dhcp").
+// Una lista blanca explícita de campos reemplaza el mínimo predeterminado del tipo Text.
 var NetworkSettingModel = model.Definition{
 	Name: "network_setting",
 	Fields: model.Fields{
@@ -70,7 +71,7 @@ var NetworkSettingModel = model.Definition{
 	},
 }
 
-// NetworkApply: one successful apply (history). Output-only: base kinds.
+// NetworkApply: una aplicación exitosa (historial). Solo salida: tipos base.
 var NetworkApplyModel = model.Definition{
 	Name: "network_apply",
 	Fields: model.Fields{
@@ -82,7 +83,7 @@ var NetworkApplyModel = model.Definition{
 	},
 }
 
-// Transport-only, output-only rows (Field.DB is nil): never stored.
+// Filas solo de transporte y salida (Field.DB es nil): nunca se almacenan.
 
 var PlanItemModel = model.Definition{
 	Name: "plan_item",

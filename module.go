@@ -10,14 +10,15 @@ import (
 	"webtyp.com/time"
 )
 
-// Deps are the module's ports — never a concrete implementation.
+// Deps son los puertos del módulo — nunca una implementación concreta.
+// Ejemplo: deps := networkmanager.Deps{TenantID: "mi_tenant"}
 type Deps struct {
-	IDs       model.IDGenerator    // required
-	Hosts     network.HostSource   // required — the inventory (device_manager in an app)
-	Importer  network.HostImporter // required — the inventory, for import_network
-	Gateway   network.Gateway      // required — the router (veltylabs/mikrotik in an app)
-	Publisher events.Publisher     // optional — nil disables publishing silently
-	TenantID  string               // required — this installation's tenant
+	IDs       model.IDGenerator    // requerido
+	Hosts     network.HostSource   // requerido — el inventario (device_manager en una app)
+	Importer  network.HostImporter // requerido — el inventario, para import_network
+	Gateway   network.Gateway      // requerido — el router (veltylabs/mikrotik en una app)
+	Publisher events.Publisher     // opcional — nil deshabilita la publicación silenciosamente
+	TenantID  string               // requerido — el inquilino de esta instalación
 }
 
 type Module struct {
@@ -30,8 +31,9 @@ type Module struct {
 	tenantID string
 }
 
-// New connects the module to an already-connected *orm.DB; the schema is
-// assumed to exist — see the migrate subpackage.
+// New conecta el módulo a un *orm.DB ya conectado; se asume que el esquema
+// existe — ver el subpaquete migrate.
+// Ejemplo: mod, err := networkmanager.New(db, deps)
 func New(db *orm.DB, deps Deps) (*Module, error) {
 	switch {
 	case deps.IDs == nil:
@@ -53,7 +55,8 @@ func depErr(name string) error {
 	return fmt.Err("network_manager: Deps."+name, "is required")
 }
 
-// GetSetting returns the tenant's settings; ErrNotFound when none were saved.
+// GetSetting devuelve las configuraciones del inquilino; ErrNotFound si no se guardó ninguna.
+// Ejemplo: settings, err := m.GetSetting()
 func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
 	var s NetworkSetting
 	if _, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s); err != nil {
@@ -103,7 +106,8 @@ func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
 	return s, nil
 }
 
-// Desired is what the gateway must enforce for the tenant.
+// Desired es lo que la puerta de enlace debe imponer para el inquilino.
+// Ejemplo: desired, err := m.Desired(cfg)
 func (m *Module) Desired(tenantID string) (network.Desired, error) {
 	s, err := m.GetSetting(tenantID)
 	if err != nil {
@@ -127,7 +131,8 @@ func (m *Module) Desired(tenantID string) (network.Desired, error) {
 	}, nil
 }
 
-// Plan returns the gateway's plan for the tenant and who is connected now.
+// Plan devuelve el plan de la puerta de enlace para el inquilino y quién está conectado ahora.
+// Ejemplo: planItems, err := m.Plan()
 func (m *Module) Plan(tenantID string) (network.Plan, []network.Connection, error) {
 	d, err := m.Desired(tenantID)
 	if err != nil {
@@ -144,8 +149,9 @@ func (m *Module) Plan(tenantID string) (network.Plan, []network.Connection, erro
 	return p, conns, nil
 }
 
-// Apply applies exactly the plan whose fingerprint the operator reviewed and
-// records it in the history.
+// Apply aplica exactamente el plan cuya huella digital revisó el operador y
+// lo registra en el historial.
+// Ejemplo: err := m.Apply(fingerprint)
 func (m *Module) Apply(tenantID, fingerprint string) (NetworkApply, error) {
 	d, err := m.Desired(tenantID)
 	if err != nil {
@@ -169,7 +175,8 @@ func (m *Module) Apply(tenantID, fingerprint string) (NetworkApply, error) {
 	return a, nil
 }
 
-// Connections lists who is online, flagged against the inventory by MAC.
+// Connections lista quién está en línea, marcado contra el inventario por MAC.
+// Ejemplo: connections, err := m.Connections()
 func (m *Module) Connections() ([]ConnectionRow, error) {
 	conns, err := m.gateway.Connections()
 	if err != nil {
@@ -194,7 +201,8 @@ func (m *Module) Connections() ([]ConnectionRow, error) {
 	return rows, nil
 }
 
-// Discover lists the router's hand-made configuration (import preview).
+// Discover lista la configuración manual del router (vista previa de importación).
+// Ejemplo: rows, err := m.Discover()
 func (m *Module) Discover() ([]DiscoveredRow, error) {
 	found, err := m.gateway.Discover()
 	if err != nil {
@@ -207,7 +215,8 @@ func (m *Module) Discover() ([]DiscoveredRow, error) {
 	return rows, nil
 }
 
-// Import hands the discovered configuration to the inventory.
+// Import entrega la configuración descubierta al inventario.
+// Ejemplo: err := m.Import()
 func (m *Module) Import() (ImportReport, error) {
 	found, err := m.gateway.Discover()
 	if err != nil {
@@ -220,7 +229,8 @@ func (m *Module) Import() (ImportReport, error) {
 	return ImportReport{Created: int64(res.Created), Skipped: int64(len(res.Skipped))}, nil
 }
 
-// ListApplies is the apply history, newest first.
+// ListApplies es el historial de aplicaciones, el más reciente primero.
+// Ejemplo: history, err := m.ListApplies()
 func (m *Module) ListApplies(tenantID string) ([]NetworkApply, error) {
 	var a NetworkApply
 	rows, err := ReadAllNetworkApply(m.db.Query(&a).Where(NetworkApply_.TenantId).Eq(tenantID).OrderBy(NetworkApply_.AppliedAt).Desc())

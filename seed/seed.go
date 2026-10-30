@@ -1,4 +1,4 @@
-// Package seed holds the demo data of network_manager.
+// Package seed contiene los datos de demostración de network_manager.
 package seed
 
 import (
@@ -14,6 +14,7 @@ const (
 )
 
 // Load guarda la configuración de demostración para tenantID a través del módulo, así la fila se valida.
+// Ejemplo: setting, err := seed.Load(module, "mi_tenant")
 func Load(m *networkmanager.Module, tenantID string) (networkmanager.NetworkSetting, error) {
 	s, err := m.SaveSetting(networkmanager.NetworkSetting{TenantId: tenantID, DhcpServer: DHCPServer,
 		DynamicPool: DynamicPool, FilterDns: FilterDNS, Unregistered: network.UnregisteredLocalName})

@@ -17,7 +17,8 @@ const (
 
 )
 
-// NewSettingView lists and saves the tenant's settings.
+// NewSettingView lista y guarda las configuraciones del inquilino.
+// Ejemplo: view := networkmanager.NewSettingView(caller)
 func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListNetworkSettings, Save: OpSaveNetworkSetting},
@@ -26,7 +27,8 @@ func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
 	return view.New(b, &NetworkSetting{}, allOpts...)
 }
 
-// NewPlanView lists the pending plan and offers the Apply action.
+// NewPlanView lista el plan pendiente y ofrece la acción Apply.
+// Ejemplo: view := networkmanager.NewPlanView(caller)
 func NewPlanView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpPlanNetwork, Actions: []view.Action{{
@@ -43,7 +45,8 @@ func NewPlanView(caller router.Caller, opts ...view.Option) view.Presenter {
 	return view.New(b, &PlanItem{}, allOpts...)
 }
 
-// NewConnectionView lists who is connected now.
+// NewConnectionView lista quién está conectado ahora.
+// Ejemplo: view := networkmanager.NewConnectionView(caller)
 func NewConnectionView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListConnections},
@@ -52,7 +55,8 @@ func NewConnectionView(caller router.Caller, opts ...view.Option) view.Presenter
 	return view.New(b, &ConnectionRow{}, allOpts...)
 }
 
-// NewApplyHistoryView lists past applies, newest first.
+// NewApplyHistoryView lista las aplicaciones pasadas, las más recientes primero.
+// Ejemplo: view := networkmanager.NewApplyHistoryView(caller)
 func NewApplyHistoryView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
 		view.Ops{Module: ModelName, List: OpListNetworkApplies},

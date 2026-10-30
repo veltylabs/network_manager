@@ -18,7 +18,7 @@ nm.MountOperations(reg) // router.OperationRegistry
 // Pantallas (ui/): Screens(caller router.Caller) []view.Screen
 ```
 
-Esquema: `migrate.Migrate(conn, compiler)` desde el binario de migración de la aplicación.
+Esquema: `migrate.Migrate` usa `ddl.Sync` y agrega las columnas que un modelo ganó (flujo: [SYNC_FLOW](https://github.com/webtyp/ddl/blob/main/docs/diagrams/SYNC_FLOW.md)).
 
 ## Operaciones
 

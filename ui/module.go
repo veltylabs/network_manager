@@ -1,6 +1,6 @@
 package ui
 
-// Screen identities: RBAC resource prefix on the server, nav route on the client.
+// Identidades de pantalla: prefijo de recurso RBAC en el servidor, ruta de navegación en el cliente.
 const (
 	ID    = "network_manager"
 	Label = "Network"
