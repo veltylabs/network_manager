@@ -244,6 +244,27 @@ func (m *Module) ListApplies(tenantID string) ([]NetworkApply, error) {
 	return out, nil
 }
 
+func (m *Module) listApplies(search, after string, limit int64) ([]NetworkApply, error) {
+	var a NetworkApply
+	qb := m.db.Query(&a).Where(NetworkApply_.TenantId).Eq(m.tenantID)
+	if search != "" {
+		qb = qb.Where(NetworkApply_.Fingerprint).Like("%" + search + "%")
+	}
+	if after != "" {
+		qb = qb.Where(NetworkApply_.Id).Gt(after)
+	}
+	qb = qb.OrderBy(NetworkApply_.Id).Asc().Limit(int(limit))
+	rows, err := ReadAllNetworkApply(qb)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]NetworkApply, len(rows))
+	for i, r := range rows {
+		out[i] = *r
+	}
+	return out, nil
+}
+
 // planItems aplana un plan en filas de lista: cambios, luego conflictos, luego
 // advertencias; cada fila lleva la huella digital, online marca una MAC conectada.
 func planItems(p network.Plan, conns []network.Connection) []PlanItem {

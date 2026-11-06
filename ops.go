@@ -1,6 +1,9 @@
 package networkmanager
 
 import (
+	"sort"
+	"strings"
+
 	"webtyp.com/model"
 	"webtyp.com/router"
 	"webtyp.com/rpc"
@@ -21,7 +24,7 @@ const (
 func (m *Module) ModelName() string { return ModelName }
 
 func (m *Module) MountOperations(reg router.OperationRegistry) {
-	reg.Operation(OpListNetworkSettings, m.opListNetworkSettings).Requires(model.ResourceOf(&NetworkSettingModel), model.Read).Accepts(nil)
+	reg.Operation(OpListNetworkSettings, m.opListNetworkSettings).Requires(model.ResourceOf(&NetworkSettingModel), model.Read).Accepts(&view.ListArgs{})
 	view.MountSave(reg, OpSaveNetworkSetting, func(s *NetworkSetting) error {
 		if s.TenantId == "" {
 			s.TenantId = m.tenantID
@@ -30,12 +33,12 @@ func (m *Module) MountOperations(reg router.OperationRegistry) {
 		*s = saved
 		return err
 	}).Requires(model.ResourceOf(&NetworkSettingModel), model.Create|model.Update)
-	reg.Operation(OpPlanNetwork, m.opPlanNetwork).Requires(ResourceNetwork, model.Read).Accepts(nil)
+	reg.Operation(OpPlanNetwork, m.opPlanNetwork).Requires(ResourceNetwork, model.Read).Accepts(&view.ListArgs{})
 	reg.Operation(OpApplyNetwork, m.opApplyNetwork).Requires(ResourceNetwork, model.Update).Accepts(&ApplyNetworkArgs{})
-	reg.Operation(OpListConnections, m.opListConnections).Requires(ResourceNetwork, model.Read).Accepts(nil)
+	reg.Operation(OpListConnections, m.opListConnections).Requires(ResourceNetwork, model.Read).Accepts(&view.ListArgs{})
 	reg.Operation(OpDiscoverNetwork, m.opDiscoverNetwork).Requires(ResourceNetwork, model.Read).Accepts(nil)
 	reg.Operation(OpImportNetwork, m.opImportNetwork).Requires(ResourceNetwork, model.Create).Accepts(nil)
-	reg.Operation(OpListNetworkApplies, m.opListNetworkApplies).Requires(ResourceNetwork, model.Read).Accepts(nil)
+	reg.Operation(OpListNetworkApplies, m.opListNetworkApplies).Requires(ResourceNetwork, model.Read).Accepts(&view.ListArgs{})
 }
 
 var _ router.OperationModule = (*Module)(nil)
@@ -43,7 +46,11 @@ var _ router.OperationModule = (*Module)(nil)
 // statusFor mapea un error de servicio a su estado HTTP (convención de AGENTS.md).
 
 func (m *Module) opListNetworkSettings(ctx router.Context) {
-	list := NetworkSettingList{}
+	var args view.ListArgs
+	if err := ctx.Decode(&args); err != nil {
+		rpc.WriteError(ctx, ErrCannotRead)
+		return
+	}
 	s, err := m.GetSetting(m.tenantID)
 
 	isNotFound := model.KindOf(err) == model.ErrorNotFound
@@ -52,8 +59,13 @@ func (m *Module) opListNetworkSettings(ctx router.Context) {
 		rpc.WriteError(ctx, err)
 		return
 	}
+	list := NetworkSettingList{}
 	if err == nil {
-		list = append(list, &s)
+		if args.After == "" || s.Id > args.After {
+			if args.Search == "" || strings.Contains(strings.ToLower(s.DhcpServer), strings.ToLower(args.Search)) {
+				list = append(list, &s)
+			}
+		}
 	}
 	if err := ctx.Encode(&list); err != nil {
 		rpc.WriteError(ctx, err)
@@ -62,15 +74,31 @@ func (m *Module) opListNetworkSettings(ctx router.Context) {
 
 
 func (m *Module) opPlanNetwork(ctx router.Context) {
+	var args view.ListArgs
+	if err := ctx.Decode(&args); err != nil {
+		rpc.WriteError(ctx, ErrCannotRead)
+		return
+	}
 	p, conns, err := m.Plan(m.tenantID)
 	if err != nil {
 		rpc.WriteError(ctx, err)
 		return
 	}
 	items := planItems(p, conns)
-	list := make(PlanItemList, len(items))
+	limit := int(view.Cap(args.Limit))
+	list := make(PlanItemList, 0, len(items))
 	for i := range items {
-		list[i] = &items[i]
+		it := &items[i]
+		if args.After != "" && it.Id <= args.After {
+			continue
+		}
+		if args.Search != "" && !strings.Contains(strings.ToLower(it.Name), strings.ToLower(args.Search)) {
+			continue
+		}
+		list = append(list, it)
+		if len(list) >= limit {
+			break
+		}
 	}
 	if err := ctx.Encode(&list); err != nil {
 		rpc.WriteError(ctx, err)
@@ -98,14 +126,36 @@ func (m *Module) opApplyNetwork(ctx router.Context) {
 }
 
 func (m *Module) opListConnections(ctx router.Context) {
+	var args view.ListArgs
+	if err := ctx.Decode(&args); err != nil {
+		rpc.WriteError(ctx, ErrCannotRead)
+		return
+	}
 	rows, err := m.Connections()
 	if err != nil {
 		rpc.WriteError(ctx, err)
 		return
 	}
-	list := make(ConnectionRowList, len(rows))
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].Mac < rows[j].Mac
+	})
+	limit := int(view.Cap(args.Limit))
+	list := make(ConnectionRowList, 0, len(rows))
 	for i := range rows {
-		list[i] = &rows[i]
+		r := &rows[i]
+		if args.After != "" && r.Mac <= args.After {
+			continue
+		}
+		if args.Search != "" && !strings.Contains(strings.ToLower(r.Name), strings.ToLower(args.Search)) &&
+			!strings.Contains(strings.ToLower(r.HostName), strings.ToLower(args.Search)) &&
+			!strings.Contains(strings.ToLower(r.Ip), strings.ToLower(args.Search)) &&
+			!strings.Contains(strings.ToLower(r.Mac), strings.ToLower(args.Search)) {
+			continue
+		}
+		list = append(list, r)
+		if len(list) >= limit {
+			break
+		}
 	}
 	if err := ctx.Encode(&list); err != nil {
 		rpc.WriteError(ctx, err)
@@ -139,14 +189,19 @@ func (m *Module) opImportNetwork(ctx router.Context) {
 }
 
 func (m *Module) opListNetworkApplies(ctx router.Context) {
-	applies, err := m.ListApplies(m.tenantID)
+	var args view.ListArgs
+	if err := ctx.Decode(&args); err != nil {
+		rpc.WriteError(ctx, ErrCannotRead)
+		return
+	}
+	rows, err := m.listApplies(args.Search, args.After, view.Cap(args.Limit))
 	if err != nil {
 		rpc.WriteError(ctx, err)
 		return
 	}
-	list := make(NetworkApplyList, len(applies))
-	for i := range applies {
-		list[i] = &applies[i]
+	list := make(NetworkApplyList, len(rows))
+	for i := range rows {
+		list[i] = &rows[i]
 	}
 	if err := ctx.Encode(&list); err != nil {
 		rpc.WriteError(ctx, err)

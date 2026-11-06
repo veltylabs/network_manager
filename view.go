@@ -21,7 +21,7 @@ const (
 // Ejemplo: view := networkmanager.NewSettingView(caller)
 func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
-		view.Ops{Module: ModelName, List: OpListNetworkSettings, Save: OpSaveNetworkSetting},
+		view.Ops{Module: ModelName, List: OpListNetworkSettings, Save: OpSaveNetworkSetting, Page: view.Page{First: view.All}},
 		func() model.ModelSlice { return &NetworkSettingList{} })
 	allOpts := append([]view.Option{view.WithTitle(titleSettings)}, opts...)
 	return view.New(b, &NetworkSetting{}, allOpts...)
@@ -31,7 +31,7 @@ func NewSettingView(caller router.Caller, opts ...view.Option) view.Presenter {
 // Ejemplo: view := networkmanager.NewPlanView(caller)
 func NewPlanView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
-		view.Ops{Module: ModelName, List: OpPlanNetwork, Actions: []view.Action{{
+		view.Ops{Module: ModelName, List: OpPlanNetwork, Page: view.Page{First: view.All}, Actions: []view.Action{{
 			Op:      OpApplyNetwork,
 			Label:   labelApply,
 			Confirm: confirmApply,
@@ -49,7 +49,7 @@ func NewPlanView(caller router.Caller, opts ...view.Option) view.Presenter {
 // Ejemplo: view := networkmanager.NewConnectionView(caller)
 func NewConnectionView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
-		view.Ops{Module: ModelName, List: OpListConnections},
+		view.Ops{Module: ModelName, List: OpListConnections, Page: view.Page{First: 50, Size: 50, More: true}},
 		func() model.ModelSlice { return &ConnectionRowList{} })
 	allOpts := append([]view.Option{view.WithTitle(titleConnections)}, opts...)
 	return view.New(b, &ConnectionRow{}, allOpts...)
@@ -59,7 +59,7 @@ func NewConnectionView(caller router.Caller, opts ...view.Option) view.Presenter
 // Ejemplo: view := networkmanager.NewApplyHistoryView(caller)
 func NewApplyHistoryView(caller router.Caller, opts ...view.Option) view.Presenter {
 	b := view.NewCallerLister(caller,
-		view.Ops{Module: ModelName, List: OpListNetworkApplies},
+		view.Ops{Module: ModelName, List: OpListNetworkApplies, Page: view.Page{First: 50, Size: 50, More: true}},
 		func() model.ModelSlice { return &NetworkApplyList{} })
 	allOpts := append([]view.Option{view.WithTitle(titleHistory)}, opts...)
 	return view.New(b, &NetworkApply{}, allOpts...)
