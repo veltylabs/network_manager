@@ -56,6 +56,7 @@ var (
 
 type fixture struct {
 	m   *networkmanager.Module
+	db  *orm.DB
 	gw  *netmem.Gateway
 	inv *fakeInventory
 	pub *mockPublisher
@@ -63,8 +64,9 @@ type fixture struct {
 
 func setup(t *testing.T) fixture {
 	t.Helper()
-	f := fixture{gw: netmem.New(), inv: &fakeInventory{}, pub: &mockPublisher{}}
-	m, err := networkmanager.New(orm.New(mem.New()), networkmanager.Deps{IDs: &mockIDGen{}, Hosts: f.inv,
+	db := orm.New(mem.New())
+	f := fixture{db: db, gw: netmem.New(), inv: &fakeInventory{}, pub: &mockPublisher{}}
+	m, err := networkmanager.New(db, networkmanager.Deps{IDs: &mockIDGen{}, Hosts: f.inv,
 		Importer: f.inv, Gateway: f.gw, Publisher: f.pub, TenantID: tenantA})
 	if err != nil {
 		t.Fatalf("New: %v", err)

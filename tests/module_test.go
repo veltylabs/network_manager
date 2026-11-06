@@ -3,7 +3,9 @@ package tests
 import (
 	"testing"
 
+	"webtyp.com/json"
 	"webtyp.com/model"
+	"webtyp.com/view"
 
 	networkmanager "github.com/veltylabs/network_manager"
 	"webtyp.com/form"
@@ -250,3 +252,65 @@ func contains(s, sub string) bool {
 	}
 	return false
 }
+
+func TestNetworkManager_ListAcceptsListArgs(t *testing.T) {
+	f := setup(t)
+	f.configured(t)
+
+	for _, fp := range []string{"fp-1", "fp-2", "fp-3"} {
+		a := networkmanager.NetworkApply{
+			Id:          "id-" + fp,
+			TenantId:    tenantA,
+			Fingerprint: fp,
+			Changes:     1,
+		}
+		if err := f.db.Create(&a); err != nil {
+			t.Fatalf("Create(%s): %v", fp, err)
+		}
+	}
+
+	// 1. Limit = 1
+	var args view.ListArgs
+	args.Limit = 1
+	var body string
+	json.Encode(&args, &body)
+	ctx := f.invoke(t, networkmanager.OpListNetworkApplies, body)
+	if statusOf(ctx) != 200 {
+		t.Fatalf("status = %d, want 200", statusOf(ctx))
+	}
+	var list1 networkmanager.NetworkApplyList
+	if err := json.Decode(ctx.ResponseBody(), &list1); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(list1) != 1 {
+		t.Fatalf("expected 1 row, got %d", len(list1))
+	}
+
+	// 2. Search = "fp-2"
+	args = view.ListArgs{Search: "fp-2", Limit: 10}
+	json.Encode(&args, &body)
+	ctx = f.invoke(t, networkmanager.OpListNetworkApplies, body)
+	var list2 networkmanager.NetworkApplyList
+	if err := json.Decode(ctx.ResponseBody(), &list2); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if len(list2) != 1 || list2[0].Fingerprint != "fp-2" {
+		t.Fatalf("expected 1 row with fp-2, got %+v", list2)
+	}
+
+	// 3. After = first row Id
+	firstID := list1[0].Id
+	args = view.ListArgs{After: firstID, Limit: 10}
+	json.Encode(&args, &body)
+	ctx = f.invoke(t, networkmanager.OpListNetworkApplies, body)
+	var list3 networkmanager.NetworkApplyList
+	if err := json.Decode(ctx.ResponseBody(), &list3); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	for _, item := range list3 {
+		if item.Id == firstID {
+			t.Fatalf("first row %s should not appear in after list", firstID)
+		}
+	}
+}
+
