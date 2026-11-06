@@ -25,7 +25,9 @@
     "host name": ["nombre de host", "", "", "", "", "", "", ""],
     "internet": ["internet", "", "", "", "", "", "", ""],
     "ip": ["IP", "", "", "", "", "", "", ""],
+    "kind": ["", "", "", "", "", "", "", ""],
     "mac": ["MAC", "", "", "", "", "", "", ""],
+    "name": ["", "", "", "", "", "", "", ""],
     "network_manager: Deps.Gateway %s": ["network_manager: Deps.Gateway %s", "", "", "", "", "", "", ""],
     "network_manager: Deps.Hosts %s": ["network_manager: Deps.Hosts %s", "", "", "", "", "", "", ""],
     "network_manager: Deps.IDs %s": ["network_manager: Deps.IDs %s", "", "", "", "", "", "", ""],
@@ -33,10 +35,13 @@
     "network_manager: Deps.TenantID %s": ["network_manager: Deps.TenantID %s", "", "", "", "", "", "", ""],
     "object": ["objeto", "", "", "", "", "", "", ""],
     "online": ["en línea", "", "", "", "", "", "", ""],
+    "reason": ["", "", "", "", "", "", "", ""],
     "registered": ["registrado", "", "", "", "", "", "", ""],
     "seed: SaveSetting": ["seed: SaveSetting", "", "", "", "", "", "", ""],
     "skipped": ["omitido", "", "", "", "", "", "", ""],
     "source": ["origen", "", "", "", "", "", "", ""],
-    "unregistered": ["sin registrar", "", "", "", "", "", "", ""]
+    "tenant id": ["", "", "", "", "", "", "", ""],
+    "unregistered": ["sin registrar", "", "", "", "", "", "", ""],
+    "updated at": ["", "", "", "", "", "", "", ""]
   }
 }
