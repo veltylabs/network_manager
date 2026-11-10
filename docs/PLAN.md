@@ -2,6 +2,8 @@
 PLAN: "refactor!: network_manager on the crud-by-declaration framework — Allow, Rules and ExternalCalls in definition.go, persistence by crud, only domain rules in rule files"
 EXECUTOR: jules
 REVIEWER: none
+STATUS: running
+SESSION: 15862984598957348604
 ---
 
 > Read AGENTS.md at the repo root before any change.
