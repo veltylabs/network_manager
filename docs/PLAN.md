@@ -1,5 +1,5 @@
 ---
-PLAN: "refactor!: network_manager on crud tables (D19/D20) — Allow in the model, persistence by the framework, only domain rules"
+PLAN: "refactor!: network_manager on the crud-by-declaration framework — Allow, Rules and ExternalCalls in definition.go, persistence by crud, only domain rules in rule files"
 EXECUTOR: jules
 REVIEWER: none
 ---
@@ -8,52 +8,68 @@ REVIEWER: none
 > **Finish by yourself:** when the delivery check passes, commit, push and open the pull request. Never ask whether to
 > proceed or finalize — nobody answers, and a session that waits ends without your work. Commit after every stage.
 > Never run `git reset`, `git restore`, `git checkout -- <file>` or `git stash` on your own work.
-> Never edit `model_orm.go` or `model_crud.go`: a build error there means the hand-written code is wrong.
+> Never edit `definition_gen.go`: a build error there means `definition.go`, a rule file or a call file is wrong; fix that and run `definitionc` again.
+> This plan is dispatched in the second wave of modules (D53), after `patient_directory` (the reference) was approved and `externalcalls` + `crud` D58 are published.
 
-# Plan: `network_manager` on crud tables
+# Plan: `network_manager` on the crud-by-declaration framework
 
-Today seven operations share one resource (`ResourceNetwork`). Applying the plan to the devices and importing hosts call external systems (`Deps.Gateway`, `Deps.Importer`): they become records with an outbox (D25). `PlanItem`, `ConnectionRow`, `DiscoveredRow` are not tables (the migration creates only `NetworkSetting` and `NetworkApply`): remove their `DB:` marks; they become read models.
+Today seven operations share one resource (`ResourceNetwork`). Applying the plan to the devices and importing hosts call external systems (`Deps.Gateway`, `Deps.Importer`): they become records with `ExternalCalls` (D36, D58, D60) and `RetryInBackground`. `PlanItem`, `ConnectionRow`, `DiscoveredRow` are not tables (the migration creates only `NetworkSetting`, `NetworkApply` and `NetworkImport`): remove their `DB:` marks; they become read models.
 
-Reference implementation of the same migration (read it first, copy its shape):
-`patient_directory` — `model.go` (`Allow`), `ops.go` (`MountPatient`), `rules.go` (hooks), `readers.go` (signatures kept, bodies on `m.store`).
+Reference implementation of the same migration (read it first, copy its shape): `patient_directory` — `definition.go` (`Definition`, `Allow`, `Rules`), `rule_patient_create.go`/`rule_patient_update.go`/`rule_patient_search.go` (the rules), `store.go`, `readers.go` (signatures kept, bodies on `m.store`).
 
 ## Tools
 
 ```bash
 go install webtyp.com/devflow/cmd/gotest@latest
 go install webtyp.com/lang/cmd/langc@latest
-go install webtyp.com/ormc/cmd/ormc@latest
-go get webtyp.com/model@latest webtyp.com/crud@latest webtyp.com/orm@latest webtyp.com/view@latest webtyp.com/appkit@latest
+go install webtyp.com/definitionc/cmd/definitionc@v0.1.43
+go get webtyp.com/model@v0.2.20 webtyp.com/crud@v0.0.14 webtyp.com/orm@v0.12.30 webtyp.com/storage@v0.2.1 webtyp.com/ddl@v0.0.49 webtyp.com/router@v0.4.21 webtyp.com/definitionc@v0.1.43 webtyp.com/view@v0.6.72 webtyp.com/appkit@v0.2.36 webtyp.com/rpc@v0.2.21 webtyp.com/externalcalls@v0.2.0
 ```
-These versions must contain `Definition.Allow` and `model.TableSlice` (model), `crud.Table`/`crud.Tx`/`crud.Transactional` (crud),
-`orm.TenantStore`/`orm.GlobalStore` returning `*orm.Store` (orm), `ormc` generating `Mount<Entity>` + `<Entity>Rules`, and `view`
-whose `NewCallerLister` takes `func() model.TableSlice`. If `go doc webtyp.com/orm TenantStore` fails or `ormc` does not write
-`func Mount`, stop and say so in the PR. Remove every `replace` from `go.mod`; `go mod tidy`; run `ormc`.
+Remove every `replace` from `go.mod`; `go mod tidy`. Before any change check, with `go doc`, that these exist: `model.ModuleDefinition`, `model.Rules` (`model.AddMyBusinessRule`, `model.HaveNoBusinessRule`), `model.ExternalCallDefinition`, `crud.CurrentUser`, `crud.RuleAnswer`, `crud.ApplyAndPublish`, `crud.ApplyWithoutPublishing`, `crud.Topic`, `crud.Loopback`, and that `definitionc` writes a `definition_gen.go` containing `func (m *Module) MountOperations(`. If one is missing, stop and say so in the PR.
+Prerequisite of the whole wave: `patient_directory` was executed, reviewed and approved by the owner; it is the reference and the 17 other modules are dispatched together after it.
 
-## The rule of this plan (D19/D20/D21 of the architecture master)
+## Lessons of the reference module (`patient_directory`, executed locally)
+
+- Needs `crud` ≥ v0.0.14 (a filter has no required field) and `definitionc` ≥ v0.1.43. `Search(a, filter *X, text, m)`: a text of `""` is normal (the rule runs on every read).
+- Running `definitionc` rewrites `go.mod` to older versions: run the `go get` list of «Tools» again after it, then `go mod tidy`; raise stale indirect dependencies (`rbac`, `mcp`, `appkit`) to the published ones.
+- In tests, events reach the publisher given to `crud.LoopbackActingAs(pub, "u1", mod)`, not `Deps.Publisher`; a caller double takes `router.Operation`; a `ddl.Execer` double returns `(storage.Result, error)`; a rule that rejects answers `return crud.RuleAnswer{}, err` (assert the refusal and that nothing was stored).
+- `langc sync .` can warn that other languages are untranslated: that is the repo's `lang.json`, not this plan.
+
+## The rule of this plan (decisions D28–D50, D58, D60 of the architecture master)
 
 The framework persists; the module declares and writes only domain rules.
 
 | The module no longer writes | Who does it now |
 |---|---|
-| id, `tenant_id`, `created_at`/`updated_at`, the transaction loop, `db.Create`/`db.Update`/`db.Delete`, «not found», batch atomicity, idempotent retry by id, paging by `After`, `tenant_id` in every query, schema checks repeated from the model | `crud` + `orm.TenantStore` / `orm.GlobalStore` |
-| an operation per verb (`list_*`, `save_*`, `upsert_*`, `delete_*`) and its handler | `Allow` in the table's `model.Definition` + the generated `Mount<Entity>` |
+| id, `tenant_id`, `created_at`/`updated_at`, the transaction loop, create/update/delete bodies, «not found», batch atomicity, idempotent retry by id, paging by `After`, `tenant_id` in every query, schema checks repeated from the model | `crud` + `orm.TenantStore` / `orm.GlobalStore` |
+| an operation per verb (`list_*`, `save_*`, `upsert_*`, `delete_*`), its handler, `ops.go`, the permission resources and the event topics | `Allow` + `Rules` in `definition.go`; `definitionc` writes `MountOperations`; `crud` names the operation (`router.Operation{Module, Entity, Action}`; on the wire `GET\|POST\|PATCH\|DELETE /api/<module>/<entity>`, in MCP `<module>.<entity>.read\|create\|update\|delete`) and publishes `<module>.<entity>.created\|updated\|deleted` with a `*crud.Change` after the commit |
 | an action with its own permission (approve, settle, receive stock…) | a **record created** in its own table, or a **read model** with its own name (D18) |
+| external system calls, outbox tables, retry loops | `Definition.ExternalCalls` + `crud.ApplyAndPublish(calls...)`; `crud` records the call within `tx` and orchestrates execution (`WaitForReply`, `RetryInBackground`, `WaitForConfirmation`) |
 
-A module writes: `Allow` per table; `ops.go` with one `Mount<Entity>(reg, store, <Entity>Rules{…})` per offered table and one
-`reg.Read(…)` per read model; `rules.go` with the hooks (`Create(c, tx, rec)`, `Update(c, tx, old, next, fields)`,
-`Delete(c, tx, rec)`, `Search(c, text)` returning AND-only conditions, `Committed(c, action, rec, fields)` for events after commit).
-A hook changes only the columns in `fields` on Update; to write another row it calls `tx.Create`/`tx.UpdateFields`.
+A module writes: `definition.go` (`var Definition = model.ModuleDefinition{…}` and, per table, `Allow`, `Rules`, and `ExternalCalls`), one `rule_<entity>_<verb>.go` for every action declared `model.AddMyBusinessRule` (created once by `definitionc`; the skeleton does not compile until completed), one `call_<entity>_<call>.go` for every external call declared, and `store.go` (`func (m *Module) Store<Entity>() crud.Store`, one line per table). Every allowed action that has no rule below is declared `model.HaveNoBusinessRule`: `crud` alone checks it. Read the reference first: `patient_directory` (`definition.go`, `rule_patient_*.go`, `store.go`).
+
+| Rule | Form (the receiver is the entity) |
+|---|---|
+| Create | `func (p *X) Create(a crud.CurrentUser, tx crud.Tx, m *Module) (crud.RuleAnswer, error)` |
+| Update | `func (next *X) Update(a crud.CurrentUser, tx crud.Tx, old *X, fields []string, m *Module) (crud.RuleAnswer, error)` (`next` carries only the sent `fields`) |
+| Delete | `func (p *X) Delete(a crud.CurrentUser, tx crud.Tx, m *Module) (crud.RuleAnswer, error)` (`p` is the stored row) |
+| Search (Read of a table) | `func (p *X) Search(a crud.CurrentUser, filter *X, text string, m *Module) ([]storage.Condition, error)` — AND conditions only; it runs on every read, `text` may be `""`, and `filter` is a record of the entity with only the fields the caller sent (D52: the entity is its own filter) |
+| Read (model without a table) | `func (p *X) Read(a crud.CurrentUser, filter *X, args crud.ReadArgs, m *Module) (model.ModelSlice, error)` (`filter` carries the fields the caller sent, D52) |
+| External Call | `func (p *X) CallName(a crud.CurrentUser, m *Module, key crud.IdempotencyKey) (crud.FieldsToSave, error)` |
+
+A rule ends with `return crud.ApplyAndPublish(calls...), nil` (saves, announces, and enqueues external calls) or `crud.ApplyWithoutPublishing(calls...)` (saves and enqueues without announcing); a rejection is `return crud.RuleAnswer{}, err`. It queries with `tx`, never with `m.db`. To write another row it calls `tx.Create`/`tx.UpdateFields`. The old `Committed` hook does not exist: external calls are declared in `Definition.ExternalCalls` and orchestrated by `crud`.
 
 ## Tables, stores and rules
 
-| Table (`<X>Model`) | Store | `Allow` | Hooks (`rules.go`) — where their rules come from today |
+An action with a rule below is declared `model.AddMyBusinessRule` in the table's `Rules`; every other allowed action is `model.HaveNoBusinessRule`. A `Search` below is the rule of `Read`.
+
+| Table (`<X>Model`) | Store | `Allow` | Rules (`rule_<entity>_<verb>.go`) & ExternalCalls |
 |---|---|---|---|
 | `NetworkSetting` | `orm.TenantStore` | `model.Create \| model.Read \| model.Update` | checks of `SaveSetting` (one row per tenant) |
-| `NetworkApply` | `orm.TenantStore` | `model.Create \| model.Read \| model.Update` | `Create`: `fingerprint` must equal the current plan's (logic of `Apply` before the gateway call), status `pending`, `actor_id` = `c.UserID`; `Committed`: run the gateway part of `Apply`, write status; `Update`: only `["status"]` back to `pending` (retry). **Outbox (D25):** the record is created with status `pending`; `Committed` calls the external system and then writes the outcome with `m.store.Atomic(func(tx crud.Tx) error { return tx.UpdateFields(rec, id, []string{"status", "failure", …}) })` — status constants `StatusPending = "pending"`, `StatusDone = "done"`, `StatusFailed = "failed"`. A retry is an Update of `status` back to `pending` (its `Committed` calls again). Never call the external system inside a `Create`/`Update` hook. |
-| `NetworkImport (**new table** `network_import`)` | `orm.TenantStore` | `model.Create \| model.Read \| model.Update` | `Create`: status `pending`, `actor_id`; `Committed`: run `Import()` and store the counts of its `ImportReport` and the status; `Update`: retry as above |
+| `NetworkApply` | `orm.TenantStore` | `model.Create \| model.Read \| model.Update` | `Create`: `fingerprint` must equal the current plan's, status `pending`, `actor_id` = `a.UserID`. ExternalCall: `ApplyGateway` (`RetryInBackground`, `MaxAttempts: 3`), enqueued via `crud.ApplyAndPublish(NetworkApplyApplyGateway{})`; `Update`: only `["status"]` to `pending` (retries call) |
+| `NetworkImport` (**new table** `network_import`) | `orm.TenantStore` | `model.Create \| model.Read \| model.Update` | `Create`: status `pending`, `actor_id`. ExternalCall: `RunImport` (`RetryInBackground`, `MaxAttempts: 3`), enqueued via `crud.ApplyAndPublish(NetworkImportRunImport{})`; `Update`: retry as above |
 
-## Read models (D18 — `crud.Registry.Read`, no table, `Allow: model.Read` only)
+## Read models (D18 — no table, `Allow: model.Read` only, `Rules.Read: model.AddMyBusinessRule`)
 
 | Model | Filter | Answered by |
 |---|---|---|
@@ -61,65 +77,70 @@ A hook changes only the columns in `fields` on Update; to write another row it c
 | `ConnectionRow` (existing; no `DB:` marks) | none | `Connections()` |
 | `DiscoveredRow` (existing; no `DB:` marks) | none | `Discover()` |
 
-A read model is a `model.Definition` **without** `DB:` marks and with `Allow: model.Read`; `ormc` gives it `Allow()` and no
-`Mount`. Its permission resource is its own `ModelName`: list it in the README permissions table (roles must be granted it).
+A read model is a `model.Definition` **without** `DB:` marks, with `Allow: model.Read` and `Rules: model.Rules{Read: model.AddMyBusinessRule}`, listed in `Definition.Entities`; `definitionc` mounts it and creates its `rule_<model name>_read.go`. Its permission resource is its own `ModelName`: list it in the README permissions table (roles must be granted it).
 
 ## Operation mapping (every operation of today has exactly one row)
 
+«After» is `router.Operation{Module, Entity, Action}` written `<entity>.<verb>`; the wire form is `crud`'s (REST `/api/<module>/<entity>` by method, MCP `<module>.<entity>.<verb>`).
+
 | Today | After |
 |---|---|
-| `list_network_settings (+save)` | `network_setting_r/_c/_u` |
+| `list_network_settings (+save)` | `network_setting.read`, `network_setting.create`, `network_setting.update` |
 | `plan_network` | read model `PlanItem` |
-| `apply_network` | `network_apply_c` with `fingerprint` |
+| `apply_network` | `network_apply.create` with `fingerprint` |
 | `list_connections` | read model `ConnectionRow` |
 | `discover_network` | read model `DiscoveredRow` |
-| `import_network` | `network_import_c` |
-| `list_network_applies` | `network_apply_r` |
+| `import_network` | `network_import.create` |
+| `list_network_applies` | `network_apply.read` |
 
-## Stage 1 — `model.go`
+## Stage 1 — `definition.go`
 
 - Set `Allow` on each table exactly as in «Tables, stores and rules»; a table not listed there gets no `Allow` (internal).
 - Mark `ServerOnly: true`: `tenant_id`, `created_at`, `updated_at`, and every field the server fills (`status`, `failure`, `actor_id`, counts).
-- Delete every `*Args` / `*Result` definition that only carried a removed operation
-  (`grep -n "ArgsModel\|ResultModel" model.go` → only the ones this plan keeps).
+- Delete every `*Args` / `*Result` definition that only carried a removed operation (`grep -n "ArgsModel\|ResultModel" model.go` → only the ones this plan keeps).
 - New table `NetworkImportModel` (name `network_import`): `id`, `tenant_id`, `status`, `failure`, `imported` (`model.Int()`), `skipped` (`model.Int()`), `actor_id`, `created_at` (all but `id` `ServerOnly`); add it to `migrate/`. `NetworkApplyModel` gains `failure` if it lacks it.
+- Declare `ExternalCalls: []model.ExternalCallDefinition{...}` on:
+  - `NetworkApplyModel`: `{Name: "ApplyGateway", Mode: model.RetryInBackground, MaxAttempts: 3}`.
+  - `NetworkImportModel`: `{Name: "RunImport", Mode: model.RetryInBackground, MaxAttempts: 3}`.
 - `ResourceNetwork` is deleted: README permissions table lists each table and read model as its own resource.
 - **Keep every `*Args` model that an exported reader's signature still uses** (`grep -n "^func (m \*Module) [A-Z][A-Za-z]*([^)]*Args" *.go` lists them): mark each `Wire: true`; delete only the `*Args` no remaining signature uses.
-- Run `ormc`: `model_crud.go` has one `func Mount<Entity>(` per table with `Allow`.
+- D52 (the entity is its own filter): a filter model (`*Filter`, `*FilterModel`, an `*ArgsModel` that only carried filter values) is not kept: its fields become fields of the read model or table (`OmitEmpty`), and the rule reads them from its receiver; delete the filter type and its `Wire`/`NewFilter` plumbing.
+- Add `var Definition = model.ModuleDefinition{Name: "network_manager", Entities: []model.Definition{…every table and read model of this plan…}}` and, on every table and read model, `Rules` as «Tables, stores and rules» says (`AddMyBusinessRule` where a rule is named, `HaveNoBusinessRule` for the other allowed actions; a read model: `Read: model.AddMyBusinessRule`). Delete the hand topics (`Topic*`) and `Err*`/resources no code uses any more.
 
 ## Stage 2 — `module.go`
 
 `Deps` keeps its fields; add `IDs model.IDGenerator` (required, `depErr("IDs")` when nil) if it is missing.
 `Module` gains `store *orm.Store`, built once in `New`: `m.store = orm.TenantStore(db, deps.TenantID, deps.IDs)`.
-Delete the hand-written persistence (create/update/upsert/patch/delete/list/get bodies that only move rows) once its rules moved to
-`rules.go`: the row-moving bodies of `SaveSetting`, `Apply`, `Import`, `ListApplies` (the gateway calls move to `Committed`).
+Delete the hand-written persistence (create/update/upsert/patch/delete/list/get bodies that only move rows) once its rules moved to the rule files: the row-moving bodies of `SaveSetting`, `Apply`, `Import`, `ListApplies`.
 
-## Stage 3 — `ops.go` and `rules.go`
+## Stage 3 — generate, then write the rules & external calls
 
-```go
-const ModelName = "network_manager"
-
-func (m *Module) ModelName() string { return ModelName }
-
-var _ crud.Module = (*Module)(nil)
-
-func (m *Module) MountOperations(reg crud.Registry) {
-	MountNetworkSetting(reg, m.store, NetworkSettingRules{Create: m.checkSetting, Update: m.checkSettingChange})
-	MountNetworkApply(reg, m.store, NetworkApplyRules{Create: m.checkApply, Update: m.retryApply, Committed: m.pushToDevices})
-	MountNetworkImport(reg, m.store, NetworkImportRules{Create: m.checkImport, Update: m.retryImport, Committed: m.runImport})
-	reg.Read(&PlanItem{}, nil, m.readPlan)
-	reg.Read(&ConnectionRow{}, nil, m.readConnections)
-	reg.Read(&DiscoveredRow{}, nil, m.readDiscovered)
-}
-```
-`rules.go` holds every hook named above. **Outbox (D25):** the record is created with status `pending`; `Committed` calls the external system and then writes the outcome with `m.store.Atomic(func(tx crud.Tx) error { return tx.UpdateFields(rec, id, []string{"status", "failure", …}) })` — status constants `StatusPending = "pending"`, `StatusDone = "done"`, `StatusFailed = "failed"`. A retry is an Update of `status` back to `pending` (its `Committed` calls again). Never call the external system inside a `Create`/`Update` hook.
-Delete every `Op*` constant, `res*`/`Resource*` variable that named a removed operation, every `op*` handler, every
-`view.MountSave`/`view.MountDelete`/`reg.Operation` call and the `webtyp.com/router`, `webtyp.com/rpc` imports
-(`grep -rn "reg.Operation\|view.MountSave\|view.MountDelete\|router.Context\|rpc.WriteError" --include=*.go . | grep -v _test` → empty).
+1. Delete `ops.go`, `crud.go`, `queries.go`, `model_crud.go`, `model_orm.go` and `definition_crud.go` (those that exist). Run `definitionc`: it writes one `definition_gen.go` (the types, schemas, external call types `NetworkApplyApplyGateway`, `NetworkImportRunImport`, and on `Module`, `ModelName()`, `Definition()`, `MountOperations()`) and the skeletons:
+   - `rule_<entity>_<verb>.go` for every action declared `AddMyBusinessRule`.
+   - `call_<entity>_<call>.go` for every call in `ExternalCalls`.
+2. Add `store.go`: for each table of «Tables, stores and rules» that has a Store, `// Store<Entity> is the store of <entity>.` `func (m *Module) Store<Entity>() crud.Store { return m.store }`.
+3. Fill each rule skeleton:
+   - `NetworkApply.Create`: checks fingerprint matches current plan, returns `crud.ApplyAndPublish(NetworkApplyApplyGateway{})`.
+   - `NetworkApply.Update`: if status = pending, returns `crud.ApplyAndPublish(NetworkApplyApplyGateway{})`.
+   - `NetworkImport.Create`: returns `crud.ApplyAndPublish(NetworkImportRunImport{})`.
+   - `NetworkImport.Update`: if status = pending, returns `crud.ApplyAndPublish(NetworkImportRunImport{})`.
+   - Rejection: `return crud.RuleAnswer{}, err`.
+4. Fill each `call_<entity>_<call>.go` skeleton:
+   - `NetworkApply.ApplyGateway(a crud.CurrentUser, m *Module, key crud.IdempotencyKey) (crud.FieldsToSave, error)`:
+     If `m.deps.Gateway == nil`: `return crud.FieldsToSave{"status": "done"}, nil`.
+     Calls `m.deps.Gateway.Apply(...)`.
+     On success: `return crud.FieldsToSave{"status": "done", "failure": ""}, nil`.
+     On error: `return crud.FieldsToSave{"status": "failed", "failure": err.Error()}, err`.
+   - `NetworkImport.RunImport(a crud.CurrentUser, m *Module, key crud.IdempotencyKey) (crud.FieldsToSave, error)`:
+     If `m.deps.Importer == nil`: `return crud.FieldsToSave{"status": "done", "imported": int64(0), "skipped": int64(0)}, nil`.
+     rep, err := `m.deps.Importer.Import(...)`.
+     On success: `return crud.FieldsToSave{"status": "done", "imported": int64(rep.Imported), "skipped": int64(rep.Skipped), "failure": ""}, nil`.
+     On error: `return crud.FieldsToSave{"status": "failed", "failure": err.Error()}, err`.
+Delete every `Op*` constant, `res*`/`Resource*` variable, every `op*` handler, every `view.MountSave`/`view.MountDelete`/`reg.Operation` call and the `webtyp.com/router`, `webtyp.com/rpc` imports that only they used (`grep -rn "reg.Operation\|view.MountSave\|view.MountDelete\|router.Context\|rpc.WriteError" --include=*.go . | grep -v _test` → empty).
 
 ## Stage 4 — readers used by other modules
 
-Signatures of every exported reader stay (other modules and apps call them). Bodies read through `m.store` (`ReadOne`, `ReadAll` with `crud.Query`), never `m.db` directly; a `tenantID` parameter different from the module's tenant answers «not found» (`found=false` / empty, `err=nil`). Keep `GetSetting`, `Desired`, `Plan`, `Connections`, `Discover`, `ListApplies`; `SaveSetting`, `Apply`, `Import` stay as callers (create the record inside `m.store.Atomic`; the external call still happens only after commit).
+Signatures of every exported reader stay (other modules and apps call them). Bodies read through `m.store` (`ReadOne`, `ReadAll` with `crud.Query`), never `m.db` directly; a `tenantID` parameter different from the module's tenant answers «not found» (`found=false` / empty, `err=nil`). Keep `GetSetting`, `Desired`, `Plan`, `Connections`, `Discover`, `ListApplies`; `SaveSetting`, `Apply`, `Import` stay as callers (create the record inside `m.store.Atomic`).
 
 ## Stage 5 — browser side (D15, D16)
 
@@ -133,14 +154,14 @@ Signatures of every exported reader stay (other modules and apps call them). Bod
   Delete the old demo: any `web/` demo (`test ! -e web`).
 - `grep -rn "webtyp.com/layout\|appkit.BrowserDeps\|appkit.ModuleBrowser\|router/loopback" .` → empty, `go.mod` included.
 
-## Stage 6 — tests (`tests/`, through `crud.LoopbackActingAs("u1", mod)`; rows in `docs/TESTS.md`)
+## Stage 6 — tests (`tests/`, through `crud.LoopbackActingAs(nil, "u1", mod)`; rows in `docs/TESTS.md`)
 
-Delete tests of removed code. Operation names: `crud.Op(&<Entity>{}, model.<Action>)` qualified with `ModelName + "."`. Required:
+Delete tests of removed code. Operations are `router.Operation{Module: ModelName, Entity: "<entity>", Action: model.<Action>}`, never a string; fixtures follow `crud` v0.0.14 (`reg.AddStoredEntity`, `crud.CurrentUser`). Add `TestMount_MatchesDefinition` (`crud.Mount(reg, nil, nil, mod)` returns nil) and one test that an allowed write publishes a `*crud.Change` on `crud.Topic(ModelName, "<entity>", model.<Action>)`. Required:
 
 | Test | Setup → call → expected |
 |---|---|
 | `TestApply_StaleFingerprintRejected` | create apply with an old fingerprint → field error on `fingerprint`; gateway not called |
-| `TestApply_GatewayCalledAfterCommit` | fake gateway records calls; create apply → status `done`, one call |
+| `TestApply_GatewayCalledViaExternalCall` | fake gateway records calls; create apply → status `done`, one call |
 | `TestApply_GatewayFailureRecorded` | fake gateway fails → status `failed`, `failure` set; update `["status"]` to pending → called again |
 | `TestImport_CountsStored` | fake importer returns 3 imported, 1 skipped → record shows 3 and 1 |
 | `TestReadModel_Plan` | setting with hosts → `PlanItem` rows |
