@@ -15,3 +15,26 @@
 - **Keep every `*Args` model that an exported reader's signature still uses** (`grep -n "^func (m \*Module) [A-Z][A-Za-z]*([^)]*Args" *.go` lists them): mark each `Wire: true`; delete only the `*Args` no remaining signature uses.
 - D52 (the entity is its own filter): a filter model (`*Filter`, `*FilterModel`, an `*ArgsModel` that only carried filter values) is not kept: its fields become fields of the read model or table (`OmitEmpty`), and the rule reads them from its receiver; delete the filter type and its `Wire`/`NewFilter` plumbing.
 - Add `var Definition = model.ModuleDefinition{Name: "network_manager", Entities: []model.Definition{…every table and read model of this plan…}}` and, on every table and read model, `Rules` as «Tables, stores and rules» says (`AddMyBusinessRule` where a rule is named, `HaveNoBusinessRule` for the other allowed actions; a read model: `Read: model.AddMyBusinessRule`). Delete the hand topics (`Topic*`) and `Err*`/resources no code uses any more.
+
+## Read models (`PlanItem`, `ConnectionRow`, `DiscoveredRow`): exact
+
+A model without a table has NO `DB:` marks and NO primary key: `Allow: model.Read`, `Rules: model.Rules{Read: model.AddMyBusinessRule}`, listed in `Definition.Entities`. `definitionc` writes `rule_<model>_read.go` with the method `Read(a crud.CurrentUser, filter *X, args crud.ReadArgs, m *Module) (model.ModelSlice, error)`. A `Search` skeleton appears only for a model that HAS `DB:` marks (a table): if `definitionc` asks for a primary key or writes `Search`, a `DB: &model.FieldDB{PK: true}` mark is still on that field: remove it (never add one to make `definitionc` compile).
+
+### Correction: a read model carries `Wire: true` (reference: `work_schedule/definition.go:48-60`)
+
+`definitionc` treats a model as a TABLE (and asks for `Search` and a primary key) unless it is declared `Wire: true`. Declare each of `PlanItem`, `ConnectionRow`, `DiscoveredRow` exactly like this example (a published read model of this ecosystem):
+
+```go
+var PlanItemModel = model.Definition{
+	Name:  "plan_item",
+	Wire:  true, // not a table: no DB marks, no primary key, nothing is stored
+	Allow: model.Read,
+	Rules: model.Rules{Read: model.AddMyBusinessRule},
+	Fields: model.Fields{
+		{Name: "kind", Type: model.Text(), OmitEmpty: true},
+		// … the fields of today's PlanItem, every one OmitEmpty, no DB: mark …
+	},
+}
+```
+
+`definitionc` then writes `rule_plan_item_read.go` with `Read(a, filter *PlanItem, args crud.ReadArgs, m *Module) (model.ModelSlice, error)`. Never add `Virtual: true` or a `DB:` mark to satisfy the generator.

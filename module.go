@@ -3,11 +3,9 @@ package networkmanager
 import (
 	"webtyp.com/events"
 	"webtyp.com/fmt"
-	"webtyp.com/input"
 	"webtyp.com/model"
 	"webtyp.com/network"
 	"webtyp.com/orm"
-	"webtyp.com/time"
 )
 
 // Deps son los puertos del módulo — nunca una implementación concreta.
@@ -23,6 +21,7 @@ type Deps struct {
 
 type Module struct {
 	db       *orm.DB
+	store    *orm.Store
 	ids      model.IDGenerator
 	hosts    network.HostSource
 	importer network.HostImporter
@@ -47,69 +46,28 @@ func New(db *orm.DB, deps Deps) (*Module, error) {
 	case deps.TenantID == "":
 		return nil, depErr("TenantID")
 	}
-	return &Module{db: db, ids: deps.IDs, hosts: deps.Hosts, importer: deps.Importer,
-		gateway: deps.Gateway, pub: deps.Publisher, tenantID: deps.TenantID}, nil
+	m := &Module{
+		db:       db,
+		store:    orm.TenantStore(db, deps.TenantID, deps.IDs),
+		ids:      deps.IDs,
+		hosts:    deps.Hosts,
+		importer: deps.Importer,
+		gateway:  deps.Gateway,
+		pub:      deps.Publisher,
+		tenantID: deps.TenantID,
+	}
+	return m, nil
 }
 
 func depErr(name string) error {
 	return fmt.Err("network_manager: Deps."+name, "is required")
 }
 
-// GetSetting devuelve las configuraciones del inquilino; ErrNotFound si no se guardó ninguna.
-// Ejemplo: settings, err := m.GetSetting()
-func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
-	var s NetworkSetting
-	if _, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s); err != nil {
-		if orm.IsNotFound(err) {
-			return NetworkSetting{}, ErrNotFound
-		}
-		return NetworkSetting{}, err
-	}
-	return s, nil
-}
-
-// SaveSetting crea o reemplaza la única fila de configuraciones del tenant.
-func (m *Module) SaveSetting(s NetworkSetting) (NetworkSetting, error) {
-	if _, err := network.ParseUnregistered(s.Unregistered); err != nil {
-		return NetworkSetting{}, &model.FieldError{Field: "unregistered", Err: err}
-	}
-	s.FilterDns = input.CanonicalIP(s.FilterDns)
-	existing, err := m.GetSetting(s.TenantId)
-
-	creating := false
-	if model.KindOf(err) == model.ErrorNotFound {
-		creating = true
-	}
-
-	if err != nil && !creating {
-		return NetworkSetting{}, err
-	}
-	action := model.ActionUpdate
-	if creating {
-		s.Id = m.ids.NewID()
-		action = model.ActionCreate
-	} else {
-		s.Id = existing.Id
-	}
-	s.UpdatedAt = time.NowNano()
-	if err := s.Validate(action); err != nil {
-		return NetworkSetting{}, &model.FieldError{Field: "unregistered", Err: err}
-	}
-	if creating {
-		err = m.db.Create(&s)
-	} else {
-		err = m.db.Update(&s, orm.Eq(NetworkSetting_.Id, s.Id), orm.Eq(NetworkSetting_.TenantId, s.TenantId))
-	}
-	if err != nil {
-		return NetworkSetting{}, err
-	}
-	return s, nil
-}
-
 // Desired es lo que la puerta de enlace debe imponer para el inquilino.
 // Ejemplo: desired, err := m.Desired(cfg)
 func (m *Module) Desired(tenantID string) (network.Desired, error) {
-	s, err := m.GetSetting(tenantID)
+	var s NetworkSetting
+	_, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s)
 	if err != nil {
 		if model.KindOf(err) == model.ErrorNotFound {
 			return network.Desired{}, ErrNotConfigured
@@ -147,32 +105,6 @@ func (m *Module) Plan(tenantID string) (network.Plan, []network.Connection, erro
 		return network.Plan{}, nil, err
 	}
 	return p, conns, nil
-}
-
-// Apply aplica exactamente el plan cuya huella digital revisó el operador y
-// lo registra en el historial.
-// Ejemplo: err := m.Apply(fingerprint)
-func (m *Module) Apply(tenantID, fingerprint string) (NetworkApply, error) {
-	d, err := m.Desired(tenantID)
-	if err != nil {
-		return NetworkApply{}, err
-	}
-	p, err := m.gateway.Apply(d, network.Fingerprint(fingerprint))
-	if err != nil {
-		if network.IsPlanStale(err) || network.IsConflicts(err) {
-			return NetworkApply{}, model.Conflict(err.Error())
-		}
-		return NetworkApply{}, err
-	}
-	a := NetworkApply{Id: m.ids.NewID(), TenantId: tenantID, Fingerprint: fingerprint,
-		Changes: int64(len(p.Changes)), AppliedAt: time.NowNano()}
-	if err := m.db.Create(&a); err != nil {
-		return NetworkApply{}, err
-	}
-	if m.pub != nil {
-		m.pub.Publish(events.Event{Topic: TopicNetworkApplied, Payload: &a})
-	}
-	return a, nil
 }
 
 // Connections lista quién está en línea, marcado contra el inventario por MAC.
@@ -215,46 +147,11 @@ func (m *Module) Discover() ([]DiscoveredRow, error) {
 	return rows, nil
 }
 
-// Import entrega la configuración descubierta al inventario.
-// Ejemplo: err := m.Import()
-func (m *Module) Import() (ImportReport, error) {
-	found, err := m.gateway.Discover()
-	if err != nil {
-		return ImportReport{}, err
-	}
-	res, err := m.importer.ImportHosts(found)
-	if err != nil {
-		return ImportReport{}, err
-	}
-	return ImportReport{Created: int64(res.Created), Skipped: int64(len(res.Skipped))}, nil
-}
-
 // ListApplies es el historial de aplicaciones, el más reciente primero.
 // Ejemplo: history, err := m.ListApplies()
 func (m *Module) ListApplies(tenantID string) ([]NetworkApply, error) {
 	var a NetworkApply
 	rows, err := ReadAllNetworkApply(m.db.Query(&a).Where(NetworkApply_.TenantId).Eq(tenantID).OrderBy(NetworkApply_.AppliedAt).Desc())
-	if err != nil {
-		return nil, err
-	}
-	out := make([]NetworkApply, len(rows))
-	for i, r := range rows {
-		out[i] = *r
-	}
-	return out, nil
-}
-
-func (m *Module) listApplies(search, after string, limit int64) ([]NetworkApply, error) {
-	var a NetworkApply
-	qb := m.db.Query(&a).Where(NetworkApply_.TenantId).Eq(m.tenantID)
-	if search != "" {
-		qb = qb.Where(NetworkApply_.Fingerprint).Like("%" + search + "%")
-	}
-	if after != "" {
-		qb = qb.Where(NetworkApply_.Id).Gt(after)
-	}
-	qb = qb.OrderBy(NetworkApply_.Id).Asc().Limit(int(limit))
-	rows, err := ReadAllNetworkApply(qb)
 	if err != nil {
 		return nil, err
 	}
