@@ -2,8 +2,10 @@
 PLAN: "refactor!: network_manager on the crud-by-declaration framework — Allow, Rules and ExternalCalls in definition.go, persistence by crud, only domain rules in rule files"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: running
+STATUS: review
 SESSION: 11314354677187081503
+PR: https://github.com/veltylabs/network_manager/pull/11
+REVIEWED_COMMIT: fa827c4bcdd585ab193e1f7246a7d557f6968972
 ---
 
 > Read AGENTS.md at the repo root before any change.
