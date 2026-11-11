@@ -14,24 +14,20 @@ nm, err := networkmanager.New(db, networkmanager.Deps{
     Publisher: eventPublisher,                                        // opcional
     TenantID:  t,
 })
-nm.MountOperations(reg) // router.OperationRegistry
 // Pantallas (ui/): Screens(caller router.Caller) []view.Screen
 ```
 
-Esquema: `migrate.Migrate` usa `ddl.Sync` y agrega las columnas que un modelo ganó (flujo: [SYNC_FLOW](https://github.com/webtyp/ddl/blob/main/docs/diagrams/SYNC_FLOW.md)).
-
 ## Operaciones
 
-| Op | Acción | Recurso |
-|---|---|---|
-| `list_network_settings` | read | `network_setting` |
-| `save_network_setting` | create/update | `network_setting` |
-| `plan_network` | read | `network` |
-| `apply_network` | update | `network` |
-| `list_connections` | read | `network` |
-| `discover_network` | read | `network` |
-| `import_network` | create | `network` |
-| `list_network_applies` | read | `network` |
+| Sin framework (hoy) | Con framework (después) |
+|---|---|
+| `list_network_settings (+save)` | `network_setting.read`, `network_setting.create`, `network_setting.update` |
+| `plan_network` | read model `plan_item` |
+| `apply_network` | `network_apply.create` con `fingerprint` |
+| `list_connections` | read model `connection_row` |
+| `discover_network` | read model `discovered_row` |
+| `import_network` | `network_import.create` |
+| `list_network_applies` | `network_apply.read` |
 
 ## Demostración
 
@@ -41,18 +37,17 @@ Ejecuta `webtyp` en la raíz del repositorio: gateway en memoria y en el navegad
 
 | Archivo | Propósito |
 |---|---|
-| `model.go` | Definiciones, constantes, errores, tema de eventos |
+| `definition.go` | Definiciones, constantes, errores, tema de eventos |
 | `kinds/` | El radio `unregistered` (paquete propio, para ormc) |
-| `model_orm.go` | Generado por `ormc` — no editar |
-| `module.go` | `Module`, `New`, servicios (settings, plan, apply, connections, discover, import, history) |
-| `ops.go` | `router.OperationModule` — `MountOperations` + handlers |
-| `view.go` | Los cuatro presentadores; el presentador del plan declara la acción Aplicar |
+| `definition_gen.go` | Generado por `definitionc` — no editar |
+| `module.go` | `Module`, `New`, servicios de lectura |
+| `rule_*.go` | Reglas de negocio del dominio por tabla |
+| `call_*.go` | Llamadas externas integradas a crud |
+| `ui/` | Presentadores de navegador |
 
 ## Documentación
 
 | Documento | Descripción |
 |---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Alcance, entidades, flujo, decisiones, operaciones |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Alcance, entidades, reglas de negocio frente a persistencia |
 | [Diagrama de Base de Datos](docs/diagrams/database.md) | ERD en Mermaid |
-
-Errores por `rpc.WriteError`; permisos por tabla (`model.ResourceOf`); guardar/borrar con `view.MountSave`/`MountDelete`; claves foráneas declaradas.

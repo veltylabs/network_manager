@@ -8,44 +8,23 @@ Lo encuentras cuando un administrador registra una PC o cambia el nivel de acces
 
 No conoce **marcas de routers**: el router llega como un `webtyp.com/network.Gateway` (`veltylabs/mikrotik` en producción, `network/mem` en tests).
 
-## Entidades
+## Entidades (Reglas de negocio frente a Persistencia)
 
-- **NetworkSetting** (una por inquilino): los valores de todo el sitio que cambian sin recompilar — nombre del servidor DHCP del router, el pool dinámico, el resolutor DNS de filtrado, y qué obtienen los dispositivos sin registrar (`no_address` o `local`). Mapea 1:1 a `network.Settings`.
-- **NetworkApply** (historial): una fila por aplicación exitosa — cuándo, el fingerprint, y cuántos cambios. Publicado como `network_manager.network.applied`.
-- Filas de solo salida (nunca se almacenan): **PlanItem** (un cambio, conflicto o advertencia del plan actual), **ConnectionRow** (un dispositivo en línea, marcado como registrado o no, con su nombre de inventario), **DiscoveredRow** (configuración de router hecha a mano, para importar).
+- **NetworkSetting** (tabla): los valores del sitio. El CRUD lo persiste. Las reglas de dominio validan la configuración al crear o actualizar (`rule_network_setting_*.go`).
+- **NetworkApply** (tabla): historial de aplicaciones. La regla de creación (`rule_network_apply_create.go`) verifica el plan actual y encola la llamada externa (`call_network_apply_ApplyGateway.go`) para contactar al router mediante `RetryInBackground`. El CRUD orquesta la persistencia, la llamada al router, y publica `network_manager.network.applied`.
+- **NetworkImport** (tabla): progreso de la importación. La regla de creación encola la llamada externa (`call_network_import_RunImport.go`) para leer del router y registrar en el inventario.
+- Filas de solo lectura y modelos de presentación (sin tabla, proveídos al vuelo): **PlanItem**, **ConnectionRow**, **DiscoveredRow**.
 
 ## Flujo
 
-```
-device_manager ──HostSource.Hosts()──┐
-NetworkSetting ──────────────────────┼─► network.Desired ─► Gateway.Plan ─► PlanItems (el operador revisa)
-                                     │                                          │ fingerprint
-operador: apply_network(fingerprint) ┴─► Gateway.Apply(desired, fingerprint) ◄──┘
-                                          ├─ ErrPlanStale → 409 (re-planificar)
-                                          ├─ ErrConflicts → 409
-                                          └─ ok → fila NetworkApply + evento
-```
-
-## Decisiones
-
-- **Planificar, revisar, aplicar** — nunca aplicar al guardar o con un temporizador. Justificación en la ARQUITECTURA de `webtyp.com/network` ("Planificar, luego aplicar").
-- **La configuración vive en la base de datos**, por lo que un sitio cambia su filtro DNS o el nombre del servidor DHCP sin una nueva compilación.
-- **Tipos de opción cerrada** (el radio `unregistered`) viven en el subpaquete `kinds/`: ormc solo importa un constructor de tipo de un paquete propio.
-- **Sin configuración ⇒ sin plan.** Hasta que el inquilino guarda un `NetworkSetting`, `plan_network` y `apply_network` responden 400 con `la configuración de red no está configurada`: el módulo nunca adivina los nombres de los objetos del router.
-- **Quién está conectado** viene del gateway, cruzado con el inventario por MAC, para que un dispositivo sin registrar se destaque antes de cerrar la red a dispositivos sin registrar.
+El framework CRUD persiste las tablas. El módulo declara sus reglas de dominio:
+1. Petición HTTP -> CRUD -> Validación de esquema
+2. Operación de lectura/escritura -> `rule_*.go` -> Módulo procesa dominio
+3. Retorno a CRUD -> Encola `call_*.go` (si lo hay) y almacena -> Retorna HTTP
 
 ## Operaciones
 
-| Op | Acción | Recurso | Descripción |
-|---|---|---|---|
-| `list_network_settings` | `r` | `network_setting` | La configuración del inquilino como una lista de 0 o 1 filas (una vista enumera; vacío = no configurado) |
-| `save_network_setting` | `c`/`u` | `network_setting` | Crear o reemplazar la configuración del inquilino |
-| `plan_network` | `r` | `network` | Plan actual: cambios, conflictos, advertencias (+ fingerprint en cada fila) |
-| `apply_network` | `u` | `network` | Aplicar el plan con el fingerprint dado |
-| `list_connections` | `r` | `network` | Dispositivos en línea ahora, marcados registrados / sin registrar |
-| `discover_network` | `r` | `network` | Configuración del router hecha a mano (vista previa de importación) |
-| `import_network` | `c` | `network` | Crear hosts de inventario desde la configuración descubierta |
-| `list_network_applies` | `r` | `network` | Historial de aplicaciones |
+Se listan en el README. Cada modelo define si es lectura o creación.
 
 ## Fuera de alcance (fases posteriores)
 

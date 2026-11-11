@@ -1,11 +1,20 @@
 package networkmanager
 
-import "webtyp.com/crud"
+import (
+	"webtyp.com/crud"
+	"webtyp.com/network"
+)
 
-// ApplyGateway es la llamada externa de network_apply (ApplyGateway): llama al sistema externo usando key como clave de idempotencia.
-// crud guarda los campos devueltos en el registro y reintenta o marca según el modo.
 func (p *NetworkApply) ApplyGateway(a crud.CurrentUser, m *Module, key crud.IdempotencyKey) (crud.FieldsToSave, error) {
-	return nil, nil
-
-
+	desired, err := m.Desired(m.tenantID)
+	if err != nil {
+		return nil, err
+	}
+	plan, err := m.gateway.Apply(desired, network.Fingerprint(p.Fingerprint))
+	if err != nil {
+		return nil, err
+	}
+	p.Status = "done"
+	p.Changes = int64(len(plan.Changes))
+	return crud.Fields("status", "changes"), nil
 }

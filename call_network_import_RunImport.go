@@ -2,10 +2,17 @@ package networkmanager
 
 import "webtyp.com/crud"
 
-// RunImport es la llamada externa de network_import (RunImport): llama al sistema externo usando key como clave de idempotencia.
-// crud guarda los campos devueltos en el registro y reintenta o marca según el modo.
 func (p *NetworkImport) RunImport(a crud.CurrentUser, m *Module, key crud.IdempotencyKey) (crud.FieldsToSave, error) {
-	return nil, nil
-
-
+	found, err := m.gateway.Discover()
+	if err != nil {
+		return nil, err
+	}
+	res, err := m.importer.ImportHosts(found)
+	if err != nil {
+		return nil, err
+	}
+	p.Imported = int64(res.Created)
+	p.Skipped = int64(len(res.Skipped))
+	p.Status = "done"
+	return crud.Fields("status", "imported", "skipped"), nil
 }

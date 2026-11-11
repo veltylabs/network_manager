@@ -1,6 +1,11 @@
 ---
 PLAN: "refactor!: network_manager on the crud-by-declaration framework — Allow, Rules and ExternalCalls in definition.go, persistence by crud, only domain rules in rule files"
 EXECUTOR: jules
+
+## Executor notes
+
+- Some test implementations required small adjustments to match API correctly, such as NetworkImport model methods returning `crud.Fields` and the Gateway mock correctly implementing its interface.
+
 REVIEWER: none
 STATUS: running
 SESSION: 689034495463889532

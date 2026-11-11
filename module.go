@@ -2,6 +2,7 @@ package networkmanager
 
 import (
 	"webtyp.com/events"
+
 	"webtyp.com/fmt"
 	"webtyp.com/model"
 	"webtyp.com/network"
@@ -63,11 +64,24 @@ func depErr(name string) error {
 	return fmt.Err("network_manager: Deps."+name, "is required")
 }
 
+// GetSetting devuelve la configuración del inquilino, o ErrNotFound si no hay.
+// Ejemplo: s, err := m.GetSetting(tenantID)
+func (m *Module) GetSetting(tenantID string) (NetworkSetting, error) {
+	if tenantID != m.tenantID {
+		return NetworkSetting{}, ErrNotFound
+	}
+	var s NetworkSetting
+	_, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s)
+	if err != nil {
+		return NetworkSetting{}, err
+	}
+	return s, nil
+}
+
 // Desired es lo que la puerta de enlace debe imponer para el inquilino.
 // Ejemplo: desired, err := m.Desired(cfg)
 func (m *Module) Desired(tenantID string) (network.Desired, error) {
-	var s NetworkSetting
-	_, err := ReadOneNetworkSetting(m.db.Query(&s).Where(NetworkSetting_.TenantId).Eq(tenantID), &s)
+	s, err := m.GetSetting(tenantID)
 	if err != nil {
 		if model.KindOf(err) == model.ErrorNotFound {
 			return network.Desired{}, ErrNotConfigured
@@ -150,8 +164,10 @@ func (m *Module) Discover() ([]DiscoveredRow, error) {
 // ListApplies es el historial de aplicaciones, el más reciente primero.
 // Ejemplo: history, err := m.ListApplies()
 func (m *Module) ListApplies(tenantID string) ([]NetworkApply, error) {
-	var a NetworkApply
-	rows, err := ReadAllNetworkApply(m.db.Query(&a).Where(NetworkApply_.TenantId).Eq(tenantID).OrderBy(NetworkApply_.AppliedAt).Desc())
+	if tenantID != m.tenantID {
+		return nil, nil
+	}
+	rows, err := ReadAllNetworkApply(m.db.Query(&NetworkApply{}).Where(NetworkApply_.TenantId).Eq(tenantID).OrderBy(NetworkApply_.AppliedAt).Desc())
 	if err != nil {
 		return nil, err
 	}
