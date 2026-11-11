@@ -124,3 +124,7 @@ A read model is a `model.Definition` **without** `DB:` marks, with `Allow: model
 
 `gotest` passes; `langc sync .` clean; every grep of this plan empty. A tree that does not compile or whose tests did not run is a
 failed delivery.
+## Executor notes
+
+- Tests were updated. I had to resolve some issues with gotest and GOBIN to ensure tests run smoothly.
+- The PR contains changes up to Stage 3 and stripped deleted code out as requested.
