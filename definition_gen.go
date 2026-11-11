@@ -5,6 +5,7 @@ package networkmanager
 import (
 	"webtyp.com/model"
 	"webtyp.com/orm"
+	"webtyp.com/crud"
 	"webtyp.com/fmt"
 	"webtyp.com/time"
 )
@@ -60,6 +61,9 @@ func (m *NetworkSetting) Validate(action byte) error {
 	return model.ValidateFields(action, m)
 }
 
+func (*NetworkSetting) Allow() model.Action     { return NetworkSettingModel.Allow }
+func (*NetworkSettingList) Allow() model.Action { return NetworkSettingModel.Allow }
+
 func (m *NetworkSetting) Item() model.Item {
 	return model.Item{ID: m.Id, Label: m.DhcpServer, Description: model.JoinItem(m.FilterDns, m.Unregistered)}
 }
@@ -103,15 +107,22 @@ type NetworkApply struct {
 	Id string
 	TenantId string
 	Fingerprint string
+	Status string
 	Changes int64
+	ActorId string
 	AppliedAt time.Nano
 }
 
 func (m *NetworkApply) ModelName() string { return "network_apply" }
 
+// NetworkApplyApplyGateway is the ExternalCall type for network_apply.ApplyGateway.
+type NetworkApplyApplyGateway struct{}
+
+func (NetworkApplyApplyGateway) ModelName() string { return "network_apply.ApplyGateway" }
+
 func (m *NetworkApply) Schema() []model.Field { return NetworkApplyModel.Fields }
 
-func (m *NetworkApply) Pointers() []any { return []any{&m.Id, &m.TenantId, &m.Fingerprint, &m.Changes, (*int64)(&m.AppliedAt)} }
+func (m *NetworkApply) Pointers() []any { return []any{&m.Id, &m.TenantId, &m.Fingerprint, &m.Status, &m.Changes, &m.ActorId, (*int64)(&m.AppliedAt)} }
 
 func (m *NetworkApply) IsNil() bool { return m == nil }
 
@@ -119,7 +130,9 @@ func (m *NetworkApply) EncodeFields(w model.FieldWriter) {
 	if m.Id != "" { w.String("id", m.Id) }
 	w.String("tenant_id", m.TenantId)
 	w.String("fingerprint", m.Fingerprint)
+	w.String("status", m.Status)
 	w.Int("changes", m.Changes)
+	w.String("actor_id", m.ActorId)
 	w.Int("applied_at", int64(m.AppliedAt))
 }
 
@@ -127,7 +140,9 @@ func (m *NetworkApply) DecodeFields(r model.FieldReader) {
 	if v, ok := r.String("id"); ok { m.Id = v }
 	if v, ok := r.String("tenant_id"); ok { m.TenantId = v }
 	if v, ok := r.String("fingerprint"); ok { m.Fingerprint = v }
+	if v, ok := r.String("status"); ok { m.Status = v }
 	if v, ok := r.Int("changes"); ok { m.Changes = v }
+	if v, ok := r.String("actor_id"); ok { m.ActorId = v }
 	if v, ok := r.Int("applied_at"); ok { m.AppliedAt = time.Nano(v) }
 }
 
@@ -144,6 +159,9 @@ func (m *NetworkApply) Validate(action byte) error {
 	return model.ValidateFields(action, m)
 }
 
+func (*NetworkApply) Allow() model.Action     { return NetworkApplyModel.Allow }
+func (*NetworkApplyList) Allow() model.Action { return NetworkApplyModel.Allow }
+
 func (m *NetworkApply) Item() model.Item {
 	return model.Item{ID: m.Id, Label: m.Fingerprint, Description: m.TenantId}
 }
@@ -152,13 +170,17 @@ var NetworkApply_ = struct {
 	Id string
 	TenantId string
 	Fingerprint string
+	Status string
 	Changes string
+	ActorId string
 	AppliedAt string
 }{
 	Id: "id",
 	TenantId: "tenant_id",
 	Fingerprint: "fingerprint",
+	Status: "status",
 	Changes: "changes",
+	ActorId: "actor_id",
 	AppliedAt: "applied_at",
 }
 
@@ -179,6 +201,100 @@ func ReadAllNetworkApply(qb *orm.QB) (NetworkApplyList, error) {
 	return results, err
 }
 
+type NetworkImport struct {
+	Id string
+	TenantId string
+	Status string
+	Imported int64
+	Skipped int64
+	ActorId string
+	CreatedAt time.Nano
+}
+
+func (m *NetworkImport) ModelName() string { return "network_import" }
+
+// NetworkImportRunImport is the ExternalCall type for network_import.RunImport.
+type NetworkImportRunImport struct{}
+
+func (NetworkImportRunImport) ModelName() string { return "network_import.RunImport" }
+
+func (m *NetworkImport) Schema() []model.Field { return NetworkImportModel.Fields }
+
+func (m *NetworkImport) Pointers() []any { return []any{&m.Id, &m.TenantId, &m.Status, &m.Imported, &m.Skipped, &m.ActorId, (*int64)(&m.CreatedAt)} }
+
+func (m *NetworkImport) IsNil() bool { return m == nil }
+
+func (m *NetworkImport) EncodeFields(w model.FieldWriter) {
+	if m.Id != "" { w.String("id", m.Id) }
+	w.String("tenant_id", m.TenantId)
+	w.String("status", m.Status)
+	w.Int("imported", m.Imported)
+	w.Int("skipped", m.Skipped)
+	w.String("actor_id", m.ActorId)
+	w.Int("created_at", int64(m.CreatedAt))
+}
+
+func (m *NetworkImport) DecodeFields(r model.FieldReader) {
+	if v, ok := r.String("id"); ok { m.Id = v }
+	if v, ok := r.String("tenant_id"); ok { m.TenantId = v }
+	if v, ok := r.String("status"); ok { m.Status = v }
+	if v, ok := r.Int("imported"); ok { m.Imported = v }
+	if v, ok := r.Int("skipped"); ok { m.Skipped = v }
+	if v, ok := r.String("actor_id"); ok { m.ActorId = v }
+	if v, ok := r.Int("created_at"); ok { m.CreatedAt = time.Nano(v) }
+}
+
+type NetworkImportList []*NetworkImport
+
+func (s *NetworkImportList) Len() int             { return len(*s) }
+func (s *NetworkImportList) At(i int) model.Fielder { return (*s)[i] }
+func (s *NetworkImportList) Append() model.Fielder  { v := &NetworkImport{}; *s = append(*s, v); return v }
+func (s *NetworkImportList) IsNil() bool          { return s == nil }
+func (s *NetworkImportList) EncodeFields(_ model.FieldWriter) {}
+func (s *NetworkImportList) DecodeFields(_ model.FieldReader) {}
+
+func (m *NetworkImport) Validate(action byte) error {
+	return model.ValidateFields(action, m)
+}
+
+func (*NetworkImport) Allow() model.Action     { return NetworkImportModel.Allow }
+func (*NetworkImportList) Allow() model.Action { return NetworkImportModel.Allow }
+
+var NetworkImport_ = struct {
+	Id string
+	TenantId string
+	Status string
+	Imported string
+	Skipped string
+	ActorId string
+	CreatedAt string
+}{
+	Id: "id",
+	TenantId: "tenant_id",
+	Status: "status",
+	Imported: "imported",
+	Skipped: "skipped",
+	ActorId: "actor_id",
+	CreatedAt: "created_at",
+}
+
+func ReadOneNetworkImport(qb *orm.QB, model *NetworkImport) (*NetworkImport, error) {
+	err := qb.ReadOne()
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
+}
+
+func ReadAllNetworkImport(qb *orm.QB) (NetworkImportList, error) {
+	var results NetworkImportList
+	err := qb.ReadAll(
+		func() model.Model { return &NetworkImport{} },
+		func(m model.Model) { results = append(results, m.(*NetworkImport)) },
+	)
+	return results, err
+}
+
 type PlanItem struct {
 	Id string
 	Category string
@@ -195,6 +311,8 @@ type PlanItem struct {
 
 func (m *PlanItem) ModelName() string { return "plan_item" }
 
+func (m *PlanItem) Wire() bool { return true }
+
 func (m *PlanItem) Schema() []model.Field { return PlanItemModel.Fields }
 
 func (m *PlanItem) Pointers() []any { return []any{&m.Id, &m.Category, &m.Kind, &m.Object, &m.Name, &m.Mac, &m.Before, &m.After, &m.Reason, &m.Online, &m.Fingerprint} }
@@ -202,17 +320,17 @@ func (m *PlanItem) Pointers() []any { return []any{&m.Id, &m.Category, &m.Kind, 
 func (m *PlanItem) IsNil() bool { return m == nil }
 
 func (m *PlanItem) EncodeFields(w model.FieldWriter) {
-	w.String("id", m.Id)
-	w.String("category", m.Category)
-	w.String("kind", m.Kind)
-	w.String("object", m.Object)
-	w.String("name", m.Name)
-	w.String("mac", m.Mac)
-	w.String("before", m.Before)
-	w.String("after", m.After)
-	w.String("reason", m.Reason)
-	w.Bool("online", m.Online)
-	w.String("fingerprint", m.Fingerprint)
+	if m.Id != "" { w.String("id", m.Id) }
+	if m.Category != "" { w.String("category", m.Category) }
+	if m.Kind != "" { w.String("kind", m.Kind) }
+	if m.Object != "" { w.String("object", m.Object) }
+	if m.Name != "" { w.String("name", m.Name) }
+	if m.Mac != "" { w.String("mac", m.Mac) }
+	if m.Before != "" { w.String("before", m.Before) }
+	if m.After != "" { w.String("after", m.After) }
+	if m.Reason != "" { w.String("reason", m.Reason) }
+	if m.Online { w.Bool("online", m.Online) }
+	if m.Fingerprint != "" { w.String("fingerprint", m.Fingerprint) }
 }
 
 func (m *PlanItem) DecodeFields(r model.FieldReader) {
@@ -300,6 +418,8 @@ type ConnectionRow struct {
 
 func (m *ConnectionRow) ModelName() string { return "connection_row" }
 
+func (m *ConnectionRow) Wire() bool { return true }
+
 func (m *ConnectionRow) Schema() []model.Field { return ConnectionRowModel.Fields }
 
 func (m *ConnectionRow) Pointers() []any { return []any{&m.Mac, &m.Ip, &m.HostName, &m.Source, &m.Registered, &m.Name} }
@@ -307,12 +427,12 @@ func (m *ConnectionRow) Pointers() []any { return []any{&m.Mac, &m.Ip, &m.HostNa
 func (m *ConnectionRow) IsNil() bool { return m == nil }
 
 func (m *ConnectionRow) EncodeFields(w model.FieldWriter) {
-	w.String("mac", m.Mac)
-	w.String("ip", m.Ip)
-	w.String("host_name", m.HostName)
-	w.String("source", m.Source)
-	w.Bool("registered", m.Registered)
-	w.String("name", m.Name)
+	if m.Mac != "" { w.String("mac", m.Mac) }
+	if m.Ip != "" { w.String("ip", m.Ip) }
+	if m.HostName != "" { w.String("host_name", m.HostName) }
+	if m.Source != "" { w.String("source", m.Source) }
+	if m.Registered { w.Bool("registered", m.Registered) }
+	if m.Name != "" { w.String("name", m.Name) }
 }
 
 func (m *ConnectionRow) DecodeFields(r model.FieldReader) {
@@ -383,6 +503,8 @@ type DiscoveredRow struct {
 
 func (m *DiscoveredRow) ModelName() string { return "discovered_row" }
 
+func (m *DiscoveredRow) Wire() bool { return true }
+
 func (m *DiscoveredRow) Schema() []model.Field { return DiscoveredRowModel.Fields }
 
 func (m *DiscoveredRow) Pointers() []any { return []any{&m.Mac, &m.Ip, &m.Name, &m.Internet} }
@@ -390,10 +512,10 @@ func (m *DiscoveredRow) Pointers() []any { return []any{&m.Mac, &m.Ip, &m.Name, 
 func (m *DiscoveredRow) IsNil() bool { return m == nil }
 
 func (m *DiscoveredRow) EncodeFields(w model.FieldWriter) {
-	w.String("mac", m.Mac)
-	w.String("ip", m.Ip)
-	w.String("name", m.Name)
-	w.Bool("internet", m.Internet)
+	if m.Mac != "" { w.String("mac", m.Mac) }
+	if m.Ip != "" { w.String("ip", m.Ip) }
+	if m.Name != "" { w.String("name", m.Name) }
+	if m.Internet { w.Bool("internet", m.Internet) }
 }
 
 func (m *DiscoveredRow) DecodeFields(r model.FieldReader) {
@@ -487,6 +609,8 @@ type ApplyNetworkArgs struct {
 
 func (m *ApplyNetworkArgs) ModelName() string { return "apply_network_args" }
 
+func (m *ApplyNetworkArgs) Wire() bool { return true }
+
 func (m *ApplyNetworkArgs) Schema() []model.Field { return ApplyNetworkArgsModel.Fields }
 
 func (m *ApplyNetworkArgs) Pointers() []any { return []any{&m.Fingerprint} }
@@ -512,4 +636,76 @@ func (s *ApplyNetworkArgsList) DecodeFields(_ model.FieldReader) {}
 
 func (m *ApplyNetworkArgs) Validate(action byte) error {
 	return model.ValidateFields(action, m)
+}
+
+// ModelName is the module identity: Definition.Name.
+const ModelName = "network_manager"
+
+func (m *Module) ModelName() string { return ModelName }
+
+// Definition is the module's declaration (definition.go); crud.Mount compares it with what MountOperations mounted.
+func (m *Module) Definition() model.ModuleDefinition { return Definition }
+
+// MountOperations offers every entity of the module: the actions its model allows, with crud's validation and the rules written in rule_*.go.
+func (m *Module) MountOperations(reg crud.Registry) {
+	reg.AddStoredEntity(crud.StoredEntity{
+		Model: &NetworkSetting{},
+		NewList: func() model.ModelSlice { return &NetworkSettingList{} },
+		Store: m.StoreNetworkSetting(),
+		Rules: NetworkSettingModel.Rules,
+		MFA: NetworkSettingModel.MFA,
+		Create: func(a crud.CurrentUser, tx crud.Tx, rec model.Model) (crud.RuleAnswer, error) {
+			return rec.(*NetworkSetting).Create(a, tx, m)
+		},
+		Update: func(a crud.CurrentUser, tx crud.Tx, old, next model.Model, fields []string) (crud.RuleAnswer, error) {
+			return next.(*NetworkSetting).Update(a, tx, old.(*NetworkSetting), fields, m)
+		},
+	})
+	reg.AddStoredEntity(crud.StoredEntity{
+		Model: &NetworkApply{},
+		NewList: func() model.ModelSlice { return &NetworkApplyList{} },
+		Store: m.StoreNetworkApply(),
+		Rules: NetworkApplyModel.Rules,
+		MFA: NetworkApplyModel.MFA,
+		Create: func(a crud.CurrentUser, tx crud.Tx, rec model.Model) (crud.RuleAnswer, error) {
+			return rec.(*NetworkApply).Create(a, tx, m)
+		},
+		Update: func(a crud.CurrentUser, tx crud.Tx, old, next model.Model, fields []string) (crud.RuleAnswer, error) {
+			return next.(*NetworkApply).Update(a, tx, old.(*NetworkApply), fields, m)
+		},
+		ExternalCalls: NetworkApplyModel.ExternalCalls,
+		Calls: map[string]crud.ExternalCallFunc{
+			"ApplyGateway": func(a crud.CurrentUser, rec model.Model, key crud.IdempotencyKey) (crud.FieldsToSave, error) {
+				return rec.(*NetworkApply).ApplyGateway(a, m, key)
+			},
+		},
+	})
+	reg.AddStoredEntity(crud.StoredEntity{
+		Model: &NetworkImport{},
+		NewList: func() model.ModelSlice { return &NetworkImportList{} },
+		Store: m.StoreNetworkImport(),
+		Rules: NetworkImportModel.Rules,
+		MFA: NetworkImportModel.MFA,
+		Create: func(a crud.CurrentUser, tx crud.Tx, rec model.Model) (crud.RuleAnswer, error) {
+			return rec.(*NetworkImport).Create(a, tx, m)
+		},
+		Update: func(a crud.CurrentUser, tx crud.Tx, old, next model.Model, fields []string) (crud.RuleAnswer, error) {
+			return next.(*NetworkImport).Update(a, tx, old.(*NetworkImport), fields, m)
+		},
+		ExternalCalls: NetworkImportModel.ExternalCalls,
+		Calls: map[string]crud.ExternalCallFunc{
+			"RunImport": func(a crud.CurrentUser, rec model.Model, key crud.IdempotencyKey) (crud.FieldsToSave, error) {
+				return rec.(*NetworkImport).RunImport(a, m, key)
+			},
+		},
+	})
+	reg.AddReadOnlyEntity(&PlanItem{}, func() model.Model { return &PlanItem{} }, func(a crud.CurrentUser, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		return (&PlanItem{}).Read(a, filter.(*PlanItem), args, m)
+	})
+	reg.AddReadOnlyEntity(&ConnectionRow{}, func() model.Model { return &ConnectionRow{} }, func(a crud.CurrentUser, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		return (&ConnectionRow{}).Read(a, filter.(*ConnectionRow), args, m)
+	})
+	reg.AddReadOnlyEntity(&DiscoveredRow{}, func() model.Model { return &DiscoveredRow{} }, func(a crud.CurrentUser, args crud.ReadArgs, filter model.Model) (model.ModelSlice, error) {
+		return (&DiscoveredRow{}).Read(a, filter.(*DiscoveredRow), args, m)
+	})
 }

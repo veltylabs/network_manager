@@ -2,10 +2,8 @@
 PLAN: "refactor!: network_manager on the crud-by-declaration framework — Allow, Rules and ExternalCalls in definition.go, persistence by crud, only domain rules in rule files"
 EXECUTOR: jules
 REVIEWER: none
-STATUS: review
+STATUS: running
 SESSION: 11314354677187081503
-PR: https://github.com/veltylabs/network_manager/pull/11
-REVIEWED_COMMIT: fa827c4bcdd585ab193e1f7246a7d557f6968972
 ---
 
 > Read AGENTS.md at the repo root before any change.
@@ -126,7 +124,3 @@ A read model is a `model.Definition` **without** `DB:` marks, with `Allow: model
 
 `gotest` passes; `langc sync .` clean; every grep of this plan empty. A tree that does not compile or whose tests did not run is a
 failed delivery.
-## Executor notes
-
-- Tests were updated. I had to resolve some issues with gotest and GOBIN to ensure tests run smoothly.
-- The PR contains changes up to Stage 3 and stripped deleted code out as requested.
